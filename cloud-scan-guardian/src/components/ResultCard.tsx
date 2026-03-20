@@ -87,17 +87,17 @@ function AttackPathCard({ path }: { path: AttackPath }) {
               {i < path.chain.length - 1 && <div className="h-5 w-px bg-primary/15" />}
             </div>
             <div className="pb-2">
-              <p className="text-sm font-semibold text-foreground">{step.resource_name}</p>
-              <p className="text-xs text-muted-foreground/80">{step.action}</p>
+              <p className="text-base font-semibold text-foreground">{step.resource_name}</p>
+              <p className="text-sm text-muted-foreground/80">{step.action}</p>
               <div className="mt-1 flex items-center gap-2">
-                <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                <span className={`rounded-md px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
                   step.evidence_status === 'CONFIRMED'
                     ? 'bg-health-secure/15 text-health-secure'
                     : 'bg-severity-medium/10 text-severity-medium'
                 }`}>
                   {step.evidence_status}
                 </span>
-                <span className="text-[10px] text-muted-foreground/65">{step.evidence}</span>
+                <span className="text-xs text-muted-foreground/65">{step.evidence}</span>
               </div>
             </div>
           </div>
@@ -105,7 +105,7 @@ function AttackPathCard({ path }: { path: AttackPath }) {
       </div>
 
       {/* Path summary */}
-      <div className="rounded-xl bg-black px-4 py-3 font-mono text-xs text-white border border-[hsl(0_0%_100%/0.08)]">
+      <div className="rounded-xl bg-black px-4 py-3 font-mono text-sm text-white border border-[hsl(0_0%_100%/0.08)]">
         {path.full_path_summary}
       </div>
 
@@ -113,6 +113,7 @@ function AttackPathCard({ path }: { path: AttackPath }) {
         <p className="text-sm text-muted-foreground leading-relaxed">{path.impact}</p>
       </Collapsible>
 
+      {/* Remediation Priority — hidden until data is properly populated
       {path.remediation_priority?.length > 0 && (
         <Collapsible label="Remediation Priority" defaultOpen>
           <ol className="list-decimal pl-4 space-y-1 text-sm text-muted-foreground">
@@ -124,6 +125,7 @@ function AttackPathCard({ path }: { path: AttackPath }) {
           </ol>
         </Collapsible>
       )}
+      */}
     </div>
   );
 }
