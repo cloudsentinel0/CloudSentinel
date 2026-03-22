@@ -71,7 +71,24 @@ Respond with **valid JSON only**. No markdown fences. No prose outside the JSON 
     "severity_breakdown": { "CRITICAL": 1, "HIGH": 1, "MEDIUM": 1, "LOW": 1, "NEEDS_REVIEW": 0 },
     "overall_health": "AT_RISK"
   },
-  "findings": [],
+  "findings": [
+    {
+      "id": "EC2-001",
+      "resource_name": "web-prod-01",
+      "resource_id": "i-0abc123",
+      "resource_type": "EC2 Instance",
+      "severity": "CRITICAL",
+      "status": "TRUE",
+      "category": "network_exposure",
+      "issue_title": "SSH open to internet on production instance",
+      "issue_description": "Security group sg-01ab allows inbound SSH (port 22) from 0.0.0.0/0 on a public-facing production instance with an attached IAM role.",
+      "impact": "Any attacker can attempt SSH brute-force. Combined with the attached admin-role, successful access leads to full account compromise via instance credentials.",
+      "fix_command": "aws ec2 revoke-security-group-ingress --group-id sg-01ab --protocol tcp --port 22 --cidr 0.0.0.0/0",
+      "fix_explanation": "Removes the 0.0.0.0/0 SSH rule from the security group. Ensure you have alternative access (SSM, VPN) before running.",
+      "attack_path_ids": ["AP-001"],
+      "aws_doc_reference": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules.html"
+    }
+  ],
   "attack_paths": [],
   "narrative": "...",
   "quick_wins": []
@@ -89,11 +106,17 @@ Respond with **valid JSON only**. No markdown fences. No prose outside the JSON 
 |-------|------|
 | `id` | `{SERVICE}-{NUMBER}` — e.g., `EC2-001`, `S3-004`, `IAM-002` |
 | `resource_name` / `resource_id` | Actual names/IDs from scan. Use ID as name if no friendly name exists |
+| `resource_type` | Resource type label — e.g., `EC2 Instance`, `Security Group`, `S3 Bucket`, `IAM Role` |
 | `severity` | `CRITICAL` \| `HIGH` \| `MEDIUM` \| `LOW` |
 | `status` | `TRUE` \| `NEEDS_REVIEW` — never include `FALSE` findings |
 | `category` | One of: `network_exposure`, `access_control`, `encryption`, `logging_monitoring`, `data_exposure`, `credential_risk`, `resource_hygiene`, `backup_recovery`, `compliance`, `cost` |
+| `issue_title` | Short title (5-10 words) describing the misconfiguration |
+| `issue_description` | 1-2 sentence explanation of what's wrong and why it matters |
+| `impact` | Concrete security impact: what an attacker could do, what data is at risk, or what compliance requirement is violated |
 | `fix_command` | Real AWS CLI command with actual resource IDs. Must be safe, specific, reversible when practical |
+| `fix_explanation` | Plain English explanation of what the fix command does and any prerequisites |
 | `attack_path_ids` | Optional. Only when finding participates in a formal attack path |
+| `aws_doc_reference` | URL to the relevant AWS documentation page for this best practice |
 
 ---
 
