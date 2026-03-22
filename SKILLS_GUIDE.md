@@ -13,6 +13,7 @@ The AI uses CLAUDE.md as its core operating instructions, but when analyzing EC2
 
 ## Why Skills Matter
 
+
 Claude is already very capable at AWS security analysis. But skills make it:
 
 1. **More consistent** — Without skills, the AI might catch an issue in one scan but miss it in another. Skills provide a checklist it always follows.
