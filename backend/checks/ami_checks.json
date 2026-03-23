@@ -1,0 +1,53 @@
+{
+  "service": "ami",
+  "source": "prowler",
+  "extraction_note": "Static metadata extracted from Prowler (Apache 2.0). No runtime dependency.",
+  "check_count": 1,
+  "checks": [
+    {
+      "id": "ec2_ami_public",
+      "title": "EC2 AMI owned by the account is not public",
+      "severity": "critical",
+      "resource_type": "Other",
+      "category": "network_exposure",
+      "description": "**EC2 AMIs owned by the account** are evaluated for **public visibility** via their launch permissions. Images shared with all accounts (`Group=all`) are treated as publicly accessible.",
+      "risk": "Public AMIs expose image contents to any AWS account, undermining **confidentiality** and **integrity**:\n- Leakage of embedded secrets, configs, or data from referenced snapshots\n- Adversaries can fingerprint your stack, aiding targeted exploits or repackaging for supply chain abuse",
+      "remediation": {
+        "cli": "aws ec2 modify-image-attribute --image-id <EC2_AMI_ID> --launch-permission \"Remove=[{Group=all}]\"",
+        "console_steps": "1. Open the Amazon EC2 console and go to AMIs\n2. Select the AMI with Visibility = Public\n3. Click Actions > Edit AMI permissions\n4. Under AMI availability, select Private\n5. Click Save changes",
+        "terraform": "",
+        "cloudformation": ""
+      },
+      "recommendation": "Keep AMIs **private** and enforce **least privilege** launch permissions. Share only with specific accounts and review access routinely. Enable **block public access for AMIs**, sanitize images to remove secrets, encrypt backing snapshots, and apply lifecycle governance to retire outdated images.",
+      "reference_url": "https://hub.prowler.com/check/ec2_ami_public",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/cancel-sharing-an-AMI.html",
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sharingamis-explicit.html",
+        "https://docs.aws.amazon.com/cli/latest/reference/ec2/modify-image-attribute.html",
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sharingamis-intro.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_6_6"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    }
+  ]
+}

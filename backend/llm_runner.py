@@ -75,24 +75,21 @@ def extract_json_from_response(text: str) -> str:
     return "\n".join(inner_lines).strip()
 
 
-def build_codex_prompt(*, system_prompt: str, user_prompt: str) -> str:
-    return (
-        "Follow the CloudSentinel system contract exactly.\n\n"
-        "=== SYSTEM CONTRACT ===\n"
-        f"{system_prompt.strip()}\n\n"
-        "=== TASK AND EVIDENCE ===\n"
-        f"{user_prompt.strip()}\n\n"
-        "Return valid JSON only. Do not use markdown fences."
-    )
-
-
 def run_claude(
     *,
+    system_prompt: str | None,
     user_prompt: str,
     cwd: Path,
     model: str | None = None,
 ) -> str:
+    """Run Claude CLI with explicit system prompt via --system-prompt flag.
+
+    Claude auto-loads CLAUDE.md from cwd, but --system-prompt overrides it
+    so the pipeline controls exactly which contract the LLM sees.
+    """
     cmd = ["claude", "--print", "--output-format", "text", "--tools", ""]
+    if system_prompt:
+        cmd += ["--system-prompt", system_prompt]
     if model:
         cmd += ["--model", model]
 
@@ -122,12 +119,16 @@ def run_claude(
 
 def run_codex(
     *,
-    system_prompt: str,
     user_prompt: str,
     cwd: Path,
     model: str | None = None,
 ) -> str:
-    prompt = build_codex_prompt(system_prompt=system_prompt, user_prompt=user_prompt)
+    """Run Codex CLI with user_prompt only.
+
+    Codex auto-loads AGENTS.md from cwd as project instructions.
+    The contract is NOT embedded in the prompt — that caused duplication
+    and bloated the token count.
+    """
     with tempfile.NamedTemporaryFile(
         prefix="cloudsentinel-codex-",
         suffix=".txt",
@@ -154,7 +155,7 @@ def run_codex(
     try:
         result = subprocess.run(
             cmd,
-            input=prompt,
+            input=user_prompt,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -187,22 +188,27 @@ def run_codex(
 
 def run_llm(
     *,
-    system_prompt: str,
+    system_prompt: str | None = None,
     user_prompt: str,
     provider: str | None = None,
     model: str | None = None,
     cwd: Path,
 ) -> LLMInvocationResult:
+    """Dispatch to the appropriate LLM CLI.
+
+    - Claude: system_prompt passed via --system-prompt flag.
+    - Codex: system_prompt not needed — Codex auto-loads AGENTS.md from cwd.
+    """
     resolved_provider = resolve_llm_provider(provider)
     if resolved_provider == "codex":
         output = run_codex(
-            system_prompt=system_prompt,
             user_prompt=user_prompt,
             cwd=cwd,
             model=model,
         )
     else:
         output = run_claude(
+            system_prompt=system_prompt,
             user_prompt=user_prompt,
             cwd=cwd,
             model=model,

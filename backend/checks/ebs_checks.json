@@ -1,0 +1,907 @@
+{
+  "service": "ebs",
+  "source": "prowler",
+  "extraction_note": "Static metadata extracted from Prowler (Apache 2.0). No runtime dependency.",
+  "check_count": 7,
+  "checks": [
+    {
+      "id": "ec2_ebs_public_snapshot",
+      "title": "EBS snapshot is not public",
+      "severity": "critical",
+      "resource_type": "AwsEc2Volume",
+      "category": "network_exposure",
+      "description": "**EBS snapshots** with **public sharing** permissions (accessible by all AWS accounts) are identified, as opposed to snapshots shared privately with specific accounts.",
+      "risk": "Public snapshots expose full volume contents, harming **confidentiality**. Any account can create a volume from the snapshot to read files, secrets, or database data, enabling **data exfiltration**, broad reconnaissance, and facilitating **lateral movement**.",
+      "remediation": {
+        "cli": "aws ec2 modify-snapshot-attribute --snapshot-id <EC2_SNAPSHOT_ID> --attribute createVolumePermission --operation-type remove --group-names all",
+        "console_steps": "1. Open the AWS Management Console and go to EC2\n2. In the left menu, select Snapshots\n3. Select the snapshot <EC2_SNAPSHOT_ID>\n4. Click Actions > Modify permissions\n5. Choose Private (remove Public/all if present)\n6. Click Save changes",
+        "terraform": "",
+        "cloudformation": ""
+      },
+      "recommendation": "Keep snapshots **private** and share only with specific accounts under **least privilege**. Enable `Block public access for Amazon EBS snapshots` regionally. Prefer **CMEK encryption** and avoid sharing keys broadly. Regularly review sharing permissions and monitor snapshot usage.",
+      "reference_url": "https://hub.prowler.com/check/ec2_ebs_public_snapshot",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/EBS/public-snapshots.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "EC2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2.1"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_6_6"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_2_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_4_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "mp_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_11"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_12"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_16"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_20"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_24_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_25"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_27"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_28"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_25"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "ec2_ebs_default_encryption",
+      "title": "EBS default encryption is enabled",
+      "severity": "high",
+      "resource_type": "AwsEc2Volume",
+      "category": "encryption",
+      "description": "**EBS** uses `encryption by default` at the account and region level, ensuring new volumes, snapshots, and AMI-backed volumes are automatically encrypted with a chosen **KMS key**",
+      "risk": "Without `encryption by default`, data on new **EBS volumes** and **snapshots** may be stored in plaintext. A compromised account or mis-shared snapshot can expose disk contents, enabling data exfiltration, offline analysis, and loss of **confidentiality**.",
+      "remediation": {
+        "cli": "aws ec2 enable-ebs-encryption-by-default --region <REGION>",
+        "console_steps": "1. In the AWS console, switch to the affected Region\n2. Go to EC2 > Settings (or Account attributes) > EBS encryption\n3. Click Enable default encryption and Save",
+        "terraform": "resource \"aws_ebs_encryption_by_default\" \"<example_resource_name>\" {\n  enabled = true  # Critical: enables default EBS encryption in this region\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::EC2::EBSEncryptionByDefault\n    Properties:\n      Enabled: true  # Critical: turns on default EBS encryption in this region"
+      },
+      "recommendation": "Enable `EBS encryption by default` in every region and select a **customer-managed KMS key**. Apply **least privilege** to key use, rotate keys, and monitor access. Enforce encrypted volume creation with organizational guardrails and secure templates as **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/ec2_ebs_default_encryption",
+      "aws_doc_urls": [
+        "https://aws.amazon.com/premiumsupport/knowledge-center/ebs-automatic-encryption/",
+        "https://docs.aws.amazon.com/ebs/latest/userguide/encryption-by-default.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/EBS/configure-default-encryption.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "EC2.7"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1.a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_4_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_2_iv"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_ii"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_9_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_13_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_28_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_19_4"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.11"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1119"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "ec2_ebs_snapshot_account_block_public_access",
+      "title": "All EBS snapshots have public access blocked",
+      "severity": "high",
+      "resource_type": "AwsEc2Volume",
+      "category": "network_exposure",
+      "description": "**EBS snapshots** account/Region configuration for **Block Public Access** is assessed to see whether public sharing is fully blocked (`block-all-sharing`) versus only new sharing (`block-new-sharing`) or unblocked. The state indicates if any snapshot can be publicly shared.",
+      "risk": "Without `block-all-sharing`, previously public snapshots can remain accessible, exposing raw disk data.\n\nImpacts:\n- Loss of **confidentiality** (PII, keys, configs)\n- Unauthorized cloning enabling **lateral movement**\n- Cross-account copies create **irreversible data leakage**",
+      "remediation": {
+        "cli": "aws ec2 enable-snapshot-block-public-access --state block-all-sharing",
+        "console_steps": "1. In the AWS console, select the target Region in the top-right.\n2. Go to EC2 > Snapshots.\n3. Click Settings > Block public access for snapshots.\n4. Select Block all sharing.\n5. Click Save changes.",
+        "terraform": "resource \"aws_ebs_snapshot_block_public_access\" \"<example_resource_name>\" {\n  state = \"block-all-sharing\" # CRITICAL: Blocks all public sharing of EBS snapshots in this Region\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::EC2::SnapshotBlockPublicAccess\n    Properties:\n      State: block-all-sharing  # CRITICAL: Blocks all public sharing of EBS snapshots in this Region to pass the check"
+      },
+      "recommendation": "Set **Block Public Access** for EBS snapshots to `block-all-sharing` in all active Regions.\n\nApply **least privilege** and guardrails (SCPs) to prevent changes. Regularly inventory snapshots, remove public sharing, and use segregated accounts with strict reviews for any necessary external sharing.",
+      "reference_url": "https://hub.prowler.com/check/ec2_ebs_snapshot_account_block_public_access",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/ebs/latest/userguide/block-public-access-snapshots-work.html#block-public-access-snapshots-enable",
+        "https://docs.aws.amazon.com/ebs/latest/userguide/block-public-access-snapshots.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.4"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_6_6"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "ec2_ebs_snapshots_encrypted",
+      "title": "EBS snapshot is encrypted",
+      "severity": "high",
+      "resource_type": "AwsEc2Volume",
+      "category": "encryption",
+      "description": "**EBS snapshots** are evaluated for **encryption at rest** with AWS KMS. The finding identifies snapshots where encryption is not enabled.",
+      "risk": "Unencrypted snapshots expose complete disk images to anyone with snapshot access or if mis-shared. Attackers can exfiltrate data, harvest credentials, and clone volumes for offline analysis, compromising **confidentiality** and enabling **lateral movement**.",
+      "remediation": {
+        "cli": "aws ec2 copy-snapshot --source-region <SOURCE_REGION> --source-snapshot-id <SNAPSHOT_ID> --encrypted --description \"Encrypted copy of <SNAPSHOT_ID>\"",
+        "console_steps": "1. In the AWS Console, go to EC2 > Snapshots and select the unencrypted snapshot\n2. Click Actions > Copy snapshot\n3. Check Encrypt this snapshot (leave the default KMS key unless a specific key is required)\n4. Click Copy snapshot and wait for the new encrypted snapshot to be available\n5. Select the original unencrypted snapshot > Actions > Delete snapshot > Delete",
+        "terraform": "resource \"aws_ebs_snapshot_copy\" \"<example_resource_name>\" {\n  source_snapshot_id = \"<UNENCRYPTED_SNAPSHOT_ID>\"\n  source_region      = \"<SOURCE_REGION>\"\n  encrypted          = true  # Critical: creates an encrypted copy of the snapshot to remediate the finding\n}",
+        "cloudformation": ""
+      },
+      "recommendation": "Encrypt all **EBS snapshots** and enable `encryption by default` to prevent unencrypted creations and copies. Use **customer-managed KMS keys** for control and rotation, restrict snapshot sharing, and enforce **least privilege** on snapshot and key permissions as **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/ec2_ebs_snapshots_encrypted",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html#encryption-by-default",
+        "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-encryption.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/EBS/snapshot-encrypted.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.13"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.20"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1119"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "ec2_ebs_volume_encryption",
+      "title": "EBS volume is encrypted",
+      "severity": "high",
+      "resource_type": "AwsEc2Volume",
+      "category": "encryption",
+      "description": "**EBS volumes** are assessed for **encryption at rest** using **AWS KMS**.\n\nThe finding identifies volumes whose `encrypted` state is disabled, meaning data is stored unencrypted on block storage.",
+      "risk": "Unencrypted volumes or snapshots can be copied, shared, or recovered and reveal raw data, undermining **confidentiality**.\n\nAdversaries with host or account access can read disks offline, harvest secrets, or alter system images, affecting **integrity** and enabling **lateral movement**.",
+      "remediation": {
+        "cli": "aws ec2 create-snapshot --volume-id <VOLUME_ID> --description \"Snapshot for encryption\" && aws ec2 copy-snapshot --source-region <REGION> --source-snapshot-id <SNAPSHOT_ID> --encrypted --description \"Encrypted snapshot\" && aws ec2 create-volume --snapshot-id <ENCRYPTED_SNAPSHOT_ID> --availability-zone <AZ> --encrypted",
+        "console_steps": "1. In the AWS Console, go to EC2 > Volumes and select the unencrypted volume\n2. Choose Actions > Create snapshot and wait for it to complete\n3. Open the snapshot, click Actions > Create volume, select the same Availability Zone, and check Encrypted, then create\n4. Stop the instance using the old volume\n5. Detach the old (unencrypted) volume\n6. Attach the new encrypted volume to the instance using the same device name\n7. Start the instance\n8. Verify the new volume shows Encrypted = Yes",
+        "terraform": "# Encrypted EBS volume\nresource \"aws_ebs_volume\" \"<example_resource_name>\" {\n  availability_zone = \"<example_az>\"\n  size              = 1\n  encrypted         = true  # CRITICAL: ensures the volume is created encrypted\n}",
+        "cloudformation": "# CloudFormation: Encrypted EBS volume\nResources:\n  <example_resource_name>:\n    Type: AWS::EC2::Volume\n    Properties:\n      AvailabilityZone: <example_az>\n      Size: 1\n      Encrypted: true  # CRITICAL: enables EBS encryption so the volume is created encrypted"
+      },
+      "recommendation": "Encrypt all EBS volumes and enable `encryption by default` for new volumes and snapshot copies.\n\nApply **least privilege** to KMS keys, restrict snapshot sharing, and enforce **defense in depth** with policies and templates that prevent creation of unencrypted storage.",
+      "reference_url": "https://hub.prowler.com/check/ec2_ebs_volume_encryption",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/EBS/ebs-encrypted.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.2.1"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "2.2.1"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "EC2.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.34"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_5"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_4_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_2_iv"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_2"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_ii"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_9_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_13_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_28_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_19_4"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_32"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.11"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1119"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "ec2_ebs_volume_snapshots_exists",
+      "title": "EBS volume has at least one snapshot",
+      "severity": "high",
+      "resource_type": "AwsEc2Volume",
+      "category": "logging_monitoring",
+      "description": "**EBS volumes** are evaluated for the existence of at least one associated **snapshot**, identifying volumes without any point-in-time backup available.",
+      "risk": "Missing **EBS snapshots** removes point-in-time recovery. Accidental deletion, corruption, or ransomware can cause **irrecoverable data loss** and prolonged **service outages**, degrading data **integrity** and **availability** and complicating recovery and forensics.",
+      "remediation": {
+        "cli": "aws ec2 create-snapshot --region <REGION> --volume-id <VOLUME_ID>",
+        "console_steps": "1. In the AWS Console, go to EC2\n2. Click Volumes, select the target EBS volume\n3. Choose Actions > Create snapshot\n4. Click Create snapshot to confirm",
+        "terraform": "# Create a snapshot for an existing EBS volume\nresource \"aws_ebs_snapshot\" \"<example_resource_name>\" {\n  volume_id = \"<example_resource_id>\" # Critical: creating this snapshot makes the volume pass the check\n}",
+        "cloudformation": "# CloudFormation: create a snapshot of an existing EBS volume\nResources:\n  <example_resource_name>:\n    Type: AWS::EC2::Snapshot\n    Properties:\n      VolumeId: <example_resource_id>  # Critical: creates a snapshot for this volume to pass the check"
+      },
+      "recommendation": "Establish automated, policy-based **EBS snapshot** coverage for all volumes aligned to business `RPO/RTO`.\n- Schedule regular snapshots with retention controls\n- Encrypt snapshots and enforce **least privilege** access\n- Replicate to another Region/account for DR\n- Periodically test restores and document procedures",
+      "reference_url": "https://hub.prowler.com/check/ec2_ebs_volume_snapshots_exists",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-snapshots.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/EBS/ebs-volumes-recent-snapshots.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.5.1.7"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.2.1.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.1.1.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.1.3.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.2.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.3.6"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_5"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience",
+        "forensics-ready"
+      ]
+    },
+    {
+      "id": "ec2_ebs_volume_protected_by_backup_plan",
+      "title": "EBS volume is protected by a backup plan",
+      "severity": "medium",
+      "resource_type": "AwsEc2Volume",
+      "category": "data_exposure",
+      "description": "**EBS volumes** are evaluated for coverage by an **AWS Backup plan**, whether explicitly targeted or included via broad resource selection, confirming scheduled, policy-driven backups exist for the volume.",
+      "risk": "Absent backup coverage, volumes face **data loss**, weakened **integrity**, and reduced **availability**. Deletion or corruption-whether accidental or malicious-can leave no recovery path, causing prolonged outages, failed point-in-time restoration, unmet retention needs, and harder incident response.",
+      "remediation": {
+        "cli": "aws backup create-backup-selection --backup-plan-id <BACKUP_PLAN_ID> --backup-selection '{\"SelectionName\":\"<example_resource_name>\",\"IamRoleArn\":\"arn:aws:iam::<example_account_id>:role/service-role/AWSBackupDefaultServiceRole\",\"Resources\":[\"arn:aws:ec2:*:*:volume/*\"]}'",
+        "console_steps": "1. In the AWS Backup console, go to Backup plans and click Create backup plan\n2. Choose Start with a template (any), keep the Default vault, and create the plan\n3. Open the plan and click Assign resources\n4. Set Selection name and choose IAM role AWSBackupDefaultServiceRole\n5. Under Assign resources, choose Include specific resource types and select EBS\n6. For Resources, select all EBS volumes (or the specific volumes to protect) and click Assign resources",
+        "terraform": "# Minimal AWS Backup plan protecting all EBS volumes\nresource \"aws_backup_plan\" \"<example_resource_name>\" {\n  name = \"<example_resource_name>\"\n\n  rule {\n    rule_name         = \"<example_rule_name>\"\n    target_vault_name = \"Default\"\n  }\n}\n\nresource \"aws_backup_selection\" \"<example_resource_name>\" {\n  name         = \"<example_resource_name>\"\n  plan_id      = aws_backup_plan.<example_resource_name>.id\n  iam_role_arn = \"arn:aws:iam::<example_account_id>:role/service-role/AWSBackupDefaultServiceRole\"\n\n  resources = [\n    \"arn:aws:ec2:*:*:volume/*\" # Critical: selects all EBS volumes to satisfy the check\n  ]\n}",
+        "cloudformation": "# CloudFormation: protect all EBS volumes by assigning them to a backup plan\nResources:\n  <example_resource_name>BackupPlan:\n    Type: AWS::Backup::BackupPlan\n    Properties:\n      BackupPlan:\n        BackupPlanName: <example_resource_name>\n        Rules:\n          - RuleName: <example_rule_name>\n            TargetBackupVault: Default\n\n  <example_resource_name>BackupSelection:\n    Type: AWS::Backup::BackupSelection\n    Properties:\n      BackupPlanId: !Ref <example_resource_name>BackupPlan\n      BackupSelection:\n        SelectionName: <example_resource_name>\n        IamRoleArn: arn:aws:iam::<example_account_id>:role/service-role/AWSBackupDefaultServiceRole\n        Resources:\n          - arn:aws:ec2:*:*:volume/*  # Critical: wildcard includes all EBS volumes so they are covered by the plan"
+      },
+      "recommendation": "Include all critical EBS volumes in standardized **AWS Backup** plans aligned to your `RPO`/`RTO`. Use tags for automatic assignment, enable cross-Region/account copies, apply **Vault Lock** for WORM retention, encrypt with KMS, enforce least-privilege access, and regularly test restores to verify integrity.",
+      "reference_url": "https://hub.prowler.com/check/ec2_ebs_volume_protected_by_backup_plan",
+      "aws_doc_urls": [
+        "https://docs.amazonaws.cn/en_us/aws-backup/latest/devguide/vault-lock.html",
+        "https://aws.amazon.com/blogs/storage/protecting-your-critical-amazon-ebs-volumes-using-aws-backup/",
+        "https://docs.aws.amazon.com/config/latest/developerguide/ebs-resources-protected-by-backup-plan.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "EC2.28"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.13"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.14"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.24"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ip_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "rc_rp_1"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    }
+  ]
+}

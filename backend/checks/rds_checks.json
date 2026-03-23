@@ -1,0 +1,3223 @@
+{
+  "service": "rds",
+  "source": "prowler",
+  "extraction_note": "Static metadata extracted from Prowler (Apache 2.0). No runtime dependency.",
+  "check_count": 35,
+  "checks": [
+    {
+      "id": "rds_instance_no_public_access",
+      "title": "RDS instance is not publicly exposed to the Internet",
+      "severity": "critical",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "network_exposure",
+      "description": "**RDS DB instances** are assessed for **internet exposure** using the `PubliclyAccessible` setting, security group ingress to the DB port from any address, and whether subnets are **public**. Instances that combine an internet-facing endpoint, open ingress, and public subnets are identified.",
+      "risk": "An internet-reachable database invites:\n- Brute-force and vulnerability probing, risking **availability** and **integrity**\n- Unauthorized queries and dumps leading to **confidentiality** loss\n\nCompromise can enable **lateral movement** and persistence within the VPC.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <db_instance_id> --no-publicly-accessible --apply-immediately",
+        "console_steps": "1. In the AWS console, go to RDS > Databases and select your DB instance\n2. Click Modify\n3. In Connectivity (Connectivity & security), set Public access to No (Not publicly accessible)\n4. Choose Continue, select Apply immediately (or during the next window), then click Modify DB instance",
+        "terraform": "# Ensure the RDS instance is not publicly accessible\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  publicly_accessible = false  # CRITICAL: disables public access (no public endpoint)\n}",
+        "cloudformation": "# CloudFormation: make the RDS instance private\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceIdentifier: <example_resource_id>\n      PubliclyAccessible: false  # CRITICAL: disables public access so the instance is not Internet-facing"
+      },
+      "recommendation": "Keep databases private by applying **least privilege** at the network layer:\n- Set `PubliclyAccessible` to `false`\n- Place instances in private subnets\n- Deny `0.0.0.0/0` and `::/0` on the DB port\n- Expose access via private endpoints, VPN, or an application tier/DB proxy\n\nAdopt **defense in depth** with monitoring and strong auth.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_no_public_access",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/config/latest/developerguide/rds-instance-public-access-check.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-publicly-accessible.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.3.3"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "2.3.3"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.28"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.31"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.31"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.28"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.11"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.28"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.13"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_6_2"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_2_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_4_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "mp_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_11"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_12"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_16"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_20"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_24_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_25"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_27"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_28"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_25"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_3"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1530"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access"
+      ],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "rds_snapshots_public_access",
+      "title": "RDS snapshot is not publicly shared",
+      "severity": "critical",
+      "resource_type": "AwsRdsDbSnapshot",
+      "category": "network_exposure",
+      "description": "**RDS DB snapshots** and **DB cluster snapshots** with **public visibility** (shared with `all` AWS accounts) are detected.\n\nSnapshots limited to specific accounts or kept private are identified as restricted.",
+      "risk": "Public RDS snapshots expose full database copies to all AWS accounts, risking:\n- Loss of confidentiality via data exfiltration (PII, secrets)\n- Offline cracking of hashes and schema reconnaissance\n- Credential harvesting from dumps enabling lateral movement\nThis directly compromises confidentiality and fuels targeted attacks.",
+      "remediation": {
+        "cli": "aws rds modify-db-snapshot-attribute --db-snapshot-identifier <snapshot_id> --attribute-name restore --values-to-remove all",
+        "console_steps": "1. Open the Amazon RDS console and go to Snapshots\n2. Select the public snapshot (DB snapshot or DB cluster snapshot)\n3. Click Actions > Share snapshot\n4. Set visibility to Private (remove \"All\" from permissions) and click Save",
+        "terraform": "",
+        "cloudformation": ""
+      },
+      "recommendation": "Keep **RDS snapshots** and **cluster snapshots** private. Share only with explicit AWS account IDs using **least privilege** and time-bound access.\n\nEnforce guardrails to block `public` visibility, require approvals for sharing, and audit snapshot permissions. Use encryption with strict key policies to control who can restore data.",
+      "reference_url": "https://hub.prowler.com/check/rds_snapshots_public_access",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/public-snapshots.html",
+        "https://docs.aws.amazon.com/config/latest/developerguide/rds-snapshots-public-prohibited.html",
+        "https://support.icompaas.com/support/solutions/articles/62000127056-ensure-rds-snapshots-and-cluster-snapshots-are-not-public"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.14"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_2_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_4_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "mp_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_11"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_12"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_16"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_20"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_24_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_25"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_27"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_28"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_25"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ra_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1530"
+        }
+      ],
+      "mitre_attack": [
+        "Collection"
+      ],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "rds_cluster_protected_by_backup_plan",
+      "title": "RDS cluster is protected by an AWS Backup plan",
+      "severity": "high",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "backup_recovery",
+      "description": "**RDS DB clusters** are covered by an **AWS Backup backup plan** when resource assignments include the cluster, either explicitly, by tags, or via an appropriate resource scope.",
+      "risk": "Lack of centralized backups enables irreversible **data loss** and **corruption**, reducing **availability** and **integrity**. Accidental deletion, ransomware, or bad changes may become unrecoverable. Weak retention or no immutability undermines rollback and can breach recovery objectives.",
+      "remediation": {
+        "cli": "aws backup create-backup-selection --backup-plan-id <example_backup_plan_id> --backup-selection '{\"SelectionName\":\"rds-clusters\",\"IamRoleArn\":\"arn:aws:iam::<example_account_id>:role/service-role/AWSBackupDefaultServiceRole\",\"Resources\":[\"arn:aws:rds:*:*:cluster:*\"]}'",
+        "console_steps": "1. In the AWS Backup console, go to Settings > Service opt-in and enable RDS if it is not enabled.\n2. Go to Backup plans and select an existing plan (create a minimal plan if none exists).\n3. Click Assign resources.\n4. Set a name and choose IAM role: AWSBackupDefaultServiceRole.\n5. Under Resources, choose By resource ID and select the target RDS DB cluster (or use the ARN), then click Assign resources.\n6. The cluster now appears as protected by the backup plan.",
+        "terraform": "# Assign RDS clusters to an existing AWS Backup plan\nresource \"aws_backup_selection\" \"<example_resource_name>\" {\n  name         = \"rds-clusters\"\n  plan_id      = \"<example_backup_plan_id>\"\n  iam_role_arn = \"arn:aws:iam::<example_account_id>:role/service-role/AWSBackupDefaultServiceRole\"\n\n  resources = [\n    \"arn:aws:rds:*:*:cluster:*\" # Critical: includes all RDS clusters in the plan to pass the check\n  ]\n}",
+        "cloudformation": "# CloudFormation: assign RDS clusters to an AWS Backup plan\nResources:\n  <example_resource_name>:\n    Type: AWS::Backup::BackupSelection\n    Properties:\n      BackupPlanId: \"<example_backup_plan_id>\"\n      BackupSelection:\n        SelectionName: \"rds-clusters\"\n        IamRoleArn: \"arn:aws:iam::<example_account_id>:role/service-role/AWSBackupDefaultServiceRole\"\n        Resources:\n          - \"arn:aws:rds:*:*:cluster:*\"  # Critical: includes all RDS clusters in the plan to mark them protected"
+      },
+      "recommendation": "Include RDS clusters in an **AWS Backup backup plan**. Apply **defense in depth**: define schedules and retention, enable immutable vault controls and cross-Region copies, use tags for consistent coverage, enforce **least privilege** for backup roles, and regularly test restores to validate RPO/RTO.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_protected_by_backup_plan",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/aws-backup/latest/devguide/assigning-resources.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-26"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ip_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "rc_rp_1"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "rds_cluster_storage_encrypted",
+      "title": "RDS cluster storage is encrypted",
+      "severity": "high",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "encryption",
+      "description": "**RDS DB clusters** are assessed for **encryption at rest** via AWS KMS. It determines whether cluster storage-and related artifacts like automated backups and snapshots-are encrypted with a KMS key.",
+      "risk": "Unencrypted clusters expose data on disk, logs, and snapshots to unauthorized reading if storage or backups are obtained. This compromises **confidentiality**, enables offline exfiltration from leaked snapshots, and can widen blast radius during incidents and migrations.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases > Create database\n2. Select your engine (Aurora or Multi-AZ DB cluster)\n3. In the configuration, enable Storage encryption (Enable encryption)\n4. Leave the KMS key as default (aws/rds or aws/aurora) unless you require a custom key\n5. Create the cluster, migrate traffic, then delete the unencrypted cluster",
+        "terraform": "# Terraform: Create an encrypted RDS/Aurora DB cluster\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  engine          = \"<ENGINE>\"\n  master_username = \"<MASTER_USERNAME>\"\n  master_password = \"<MASTER_PASSWORD>\"\n  storage_encrypted = true  # Critical: enables encryption at rest for the cluster\n}",
+        "cloudformation": "# CloudFormation: Create an encrypted RDS/Aurora DB cluster\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      Engine: <ENGINE>\n      MasterUsername: <MASTER_USERNAME>\n      MasterUserPassword: <MASTER_PASSWORD>\n      StorageEncrypted: true  # Critical: enables encryption at rest for the cluster"
+      },
+      "recommendation": "Create clusters with `StorageEncrypted=true` using **AWS KMS**, preferably **customer-managed keys**. Apply **least privilege** to key usage, enable rotation and monitoring, and separate key administration from DB operations. Ensure snapshots and cross-account copies remain encrypted for **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_storage_encrypted",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-27",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Overview.Encryption.html#Overview.Encryption.Enabling",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.25"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.42"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.11"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "rds_instance_certificate_expiration",
+      "title": "RDS instance SSL/TLS certificate has more than 3 months of validity remaining",
+      "severity": "high",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "encryption",
+      "description": "**RDS DB instances** are evaluated for **server certificate validity** windows, including default and **customer-managed certificates**. Certificates **expired** or **approaching expiration** (e.g., `<1 month`, `<3 months`, `3-6 months`, `>6 months`) are identified using the certificate `valid_till` date.",
+      "risk": "Without timely rotation:\n- TLS failures block DB connections, impacting **availability**\n- Bypassed or weak validation enables **MITM**, risking **confidentiality** and **integrity**\n- Emergency changes increase **operational risk** and error rates",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <example_resource_id> --ca-certificate-identifier rds-ca-rsa2048-g1 --apply-immediately",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases and select the DB instance\n2. Click Modify\n3. In Connectivity (or Certificate authority), select rds-ca-rsa2048-g1\n4. Check Apply immediately\n5. Click Continue (if shown) and then Modify DB instance",
+        "terraform": "# Set a current CA on the RDS instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  identifier          = \"<example_resource_id>\"\n  ca_cert_identifier  = \"rds-ca-rsa2048-g1\"  # CRITICAL: rotates to a valid CA to ensure certificate validity >3 months\n}",
+        "cloudformation": "# CloudFormation: update RDS instance CA to a current certificate\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      CACertificateIdentifier: rds-ca-rsa2048-g1  # CRITICAL: rotates to a valid CA to restore >3 months certificate validity"
+      },
+      "recommendation": "Establish a **certificate lifecycle** for RDS:\n- Rotate server/CA certs well before expiry; avoid pinned or outdated CAs\n- Keep client trust stores current and enforce TLS with validation\n- Monitor expiry and automate alerts/rotation\n- For custom certs, apply **least privilege**, **separation of duties**, and periodic key rotation; test changes",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_certificate_expiration",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL-certificate-rotation.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rotate-rds-certificates.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "rds_instance_deprecated_engine_version",
+      "title": "RDS instance uses a supported engine version",
+      "severity": "high",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "compliance",
+      "description": "**RDS DB instances** use a **supported, non-deprecated engine version** for MariaDB, MySQL, or PostgreSQL. The instance's `engine` and `engine_version` are evaluated against versions currently supported in the region.",
+      "risk": "Deprecated engine versions lack security fixes and support, enabling exploitation of known flaws impacting **confidentiality** and **integrity**. **Availability** can suffer from forced maintenance or failed upgrades.\n- Unpatched CVEs\n- TLS/client incompatibilities\n- Replication or backup/restore issues",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <DB_INSTANCE_ID> --engine-version <SUPPORTED_ENGINE_VERSION> --allow-major-version-upgrade --apply-immediately",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases\n2. Select the DB instance\n3. Click Modify\n4. Under DB engine version, select a supported version\n5. If moving to a new major version, check Allow major version upgrade\n6. Check Apply immediately\n7. Click Continue, then Modify DB instance",
+        "terraform": "# Upgrade RDS engine version\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  identifier         = \"<example_resource_id>\"\n  engine             = \"<engine>\"\n  instance_class     = \"db.t3.micro\"\n  allocated_storage  = 20\n\n  engine_version               = \"<SUPPORTED_ENGINE_VERSION>\"  # CRITICAL: use a supported version\n  allow_major_version_upgrade  = true                           # CRITICAL: needed for major upgrades\n  apply_immediately            = true                           # CRITICAL: apply now to pass the check\n}",
+        "cloudformation": "# CloudFormation: upgrade RDS engine version for an existing instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceIdentifier: <example_resource_id>\n      Engine: <engine>\n      DBInstanceClass: db.t3.micro\n      EngineVersion: <SUPPORTED_ENGINE_VERSION>  # CRITICAL: move to a supported engine version\n      AllowMajorVersionUpgrade: true             # CRITICAL: required if upgrading major version\n      ApplyImmediately: true                     # CRITICAL: apply change now to pass the check"
+      },
+      "recommendation": "Standardize on **supported engine versions** and keep them current.\n- Plan and test upgrades; back up and define rollback\n- Enable `AutoMinorVersionUpgrade` where acceptable\n- Monitor deprecation notices and upgrade before EoS\n- Enforce **least privilege** to limit blast radius during incidents",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_deprecated_engine_version",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-engine-versions.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "vulnerabilities"
+      ]
+    },
+    {
+      "id": "rds_instance_inside_vpc",
+      "title": "RDS instance is deployed in a VPC",
+      "severity": "high",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "compliance",
+      "description": "**RDS DB instances** are assessed for **VPC placement** by the presence of a `vpc_id` indicating deployment within a VPC.\n\nInstances without this association are treated as outside VPC networking.",
+      "risk": "Without VPC isolation, databases may expose internet-reachable endpoints and lack granular network controls. This degrades **confidentiality** and **availability** via scanning/brute force and data exfiltration, and threatens **integrity** through unauthorized connections and lateral movement.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <example_resource_id> --db-subnet-group-name <example_resource_name> --apply-immediately",
+        "console_steps": "1. In the AWS Console, go to RDS > Subnet groups and create/select a DB subnet group in the target VPC (with subnets in at least two AZs)\n2. Go to RDS > Databases, select the DB instance, click Modify\n3. Under Connectivity, set DB subnet group to the VPC subnet group from step 1 (select a VPC security group if prompted)\n4. Check Apply immediately and choose Continue > Modify DB instance",
+        "terraform": "# Terraform: ensure RDS instance is in a VPC via DB subnet group\nresource \"aws_db_subnet_group\" \"<example_resource_name>\" {\n  name       = \"<example_resource_name>\"\n  subnet_ids = [\n    \"<example_resource_id>\", # CRITICAL: Subnets in the target VPC\n    \"<example_resource_id>\"\n  ]\n}\n\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  identifier          = \"<example_resource_id>\"\n  db_subnet_group_name = aws_db_subnet_group.<example_resource_name>.name  # CRITICAL: Places instance in a VPC\n}",
+        "cloudformation": "# CloudFormation: move RDS instance into a VPC by assigning a DB subnet group\nResources:\n  <example_db_subnet_group>:\n    Type: AWS::RDS::DBSubnetGroup\n    Properties:\n      DBSubnetGroupDescription: \"subnets for rds\"\n      SubnetIds:\n        - <example_resource_id>  # CRITICAL: Subnets in the target VPC\n        - <example_resource_id>  # CRITICAL: At least two AZs recommended\n\n  <example_db_instance>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBSubnetGroupName: !Ref <example_db_subnet_group>  # CRITICAL: Ensures the DB instance is deployed in a VPC"
+      },
+      "recommendation": "Deploy all RDS instances in a **VPC**, preferably in **private subnets**. Enforce **least privilege** with security groups, network ACLs, and restrictive routing. Use private connectivity (peering, VPN, Direct Connect), avoid public exposure, and apply **defense in depth** through segmentation and monitoring.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_inside_vpc",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-18",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html#USER_VPC.Subnets"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.18"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "trust-boundaries"
+      ]
+    },
+    {
+      "id": "rds_instance_protected_by_backup_plan",
+      "title": "RDS instance is protected by an AWS Backup plan",
+      "severity": "high",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "data_exposure",
+      "description": "**RDS DB instances** (non-Aurora) are included in an **AWS Backup plan**, indicating scheduled backups and retention are applied to the resource.\n\n*Aurora engines are evaluated separately.*",
+      "risk": "Without an **AWS Backup plan**, databases lack assured recovery, degrading **availability** and **integrity**. Likely outcomes: accidental deletion, corruption, or malicious wipes with no recent restore point. Expect missed `RPO/RTO`, extended outages, and data inconsistency after incidents.",
+      "remediation": {
+        "cli": "aws backup create-backup-selection --backup-plan-id <example_backup_plan_id> --backup-selection '{\"SelectionName\":\"<selection_name>\",\"IamRoleArn\":\"<example_role_arn>\",\"Resources\":[\"<rds-instance-arn>\"]}'",
+        "console_steps": "1. In the AWS Console, open AWS Backup\n2. Go to Settings > Service opt-in and enable Amazon RDS (if not already)\n3. Go to Backup plans and select an existing plan (or Create backup plan with defaults)\n4. Click Assign resources\n5. Enter a name, select an IAM role, and add the RDS instance (by ARN or resource picker)\n6. Click Assign resources to save",
+        "terraform": "# Assign an RDS instance to an AWS Backup plan\nresource \"aws_backup_selection\" \"<example_resource_name>\" {\n  name         = \"<selection_name>\"\n  plan_id      = \"<example_backup_plan_id>\"   # CRITICAL: attaches to the backup plan\n  iam_role_arn = \"<example_role_arn>\"         # CRITICAL: role AWS Backup uses\n  resources    = [\"<rds-instance-arn>\"]       # CRITICAL: RDS instance protected by the plan\n}",
+        "cloudformation": "# CloudFormation: assign an RDS instance to an AWS Backup plan\nResources:\n  <example_resource_name>:\n    Type: AWS::Backup::BackupSelection\n    Properties:\n      BackupPlanId: <example_backup_plan_id>  # CRITICAL: targets the backup plan to protect the instance\n      BackupSelection:\n        SelectionName: <selection_name>\n        IamRoleArn: <example_role_arn>        # CRITICAL: role AWS Backup uses to back up the resource\n        Resources:\n          - <rds-instance-arn>                # CRITICAL: assigns the RDS instance to the plan"
+      },
+      "recommendation": "Assign all non-Aurora RDS to an **AWS Backup plan** aligned to business `RPO/RTO`. Use **tags** for automatic coverage, define retention and lifecycle, and store backups in **immutable** vaults where possible. Regularly perform restore tests. Enforce **least privilege** and **separation of duties** for backup administration.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_protected_by_backup_plan",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/aws-backup/latest/devguide/assigning-resources.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-26"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.21"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ip_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "rc_rp_1"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "rds_instance_storage_encrypted",
+      "title": "RDS DB instance storage is encrypted at rest",
+      "severity": "high",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "encryption",
+      "description": "**RDS DB instances** are assessed for **KMS-based encryption at rest** (`StorageEncrypted=true`), covering instance storage and derived artifacts such as snapshots, automated backups, and read replicas.",
+      "risk": "Without **encryption at rest**, database files, snapshots, and automated backups remain in plaintext. An attacker with access to copied snapshots, compromised backups, or underlying storage can read sensitive data, causing loss of **confidentiality** and enabling large-scale exfiltration.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases, select the unencrypted DB instance, then choose Actions > Take snapshot.\n2. After the snapshot is available, go to Snapshots, select it, choose Actions > Copy snapshot, enable encryption, and select a KMS key (or aws/rds).\n3. When the encrypted copy is ready, select it and choose Actions > Restore snapshot to create a new (encrypted) DB instance.\n4. Update your application/endpoint to use the new encrypted DB instance.\n5. Decommission the old unencrypted instance after cutover.",
+        "terraform": "# Terraform: create an encrypted RDS DB instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  engine            = \"<engine>\"\n  instance_class    = \"<instance_class>\"\n  username          = \"<username>\"\n  password          = \"<password>\"\n  allocated_storage = 20\n\n  storage_encrypted = true  # CRITICAL: enables encryption at rest to pass the check\n}",
+        "cloudformation": "# CloudFormation: create an encrypted RDS DB instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceClass: \"<instance_class>\"\n      Engine: \"<engine>\"\n      AllocatedStorage: 20\n      MasterUsername: \"<username>\"\n      MasterUserPassword: \"<password>\"\n      StorageEncrypted: true  # CRITICAL: enables encryption at rest so the instance passes the check"
+      },
+      "recommendation": "Enable **encryption at rest** for all RDS instances. Prefer **customer-managed KMS keys** to control rotation and fine-grained access, applying **least privilege** and **defense in depth**. Restrict key usage, monitor key activity, and manage key lifecycle. Migrate unencrypted instances via encrypted snapshot copy and restore.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_storage_encrypted",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-encryption-enabled.html",
+        "https://aws.amazon.com/blogs/storage/protecting-amazon-rds-db-instances-encrypted-using-kms-aws-managed-key-with-cross-account-and-cross-region-backups/",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "GDPR",
+        "HIPAA",
+        "ISO-27001",
+        "NIST-800-53",
+        "NIST-CSF",
+        "PCI-DSS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.3.1"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "2.3.1"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.44"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_5"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_4_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_2_iv"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_ii"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_9_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_8"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_13_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_28_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_19_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_1"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_32"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.11"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1119"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1530"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "rds_instance_transport_encrypted",
+      "title": "RDS instance or cluster enforces SSL/TLS encryption for client connections",
+      "severity": "high",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "encryption",
+      "description": "**RDS DB instances** and **DB clusters** enforce **SSL/TLS** for client connections via parameter groups. The check looks for `rds.force_ssl=1` (PostgreSQL, SQL Server) or `require_secure_transport` enabled (MySQL-family) and identifies databases where encryption enforcement isn't active.",
+      "risk": "Without enforced **TLS**, clients can connect or downgrade to plaintext, exposing credentials and queries to interception. Adversaries can perform **MITM**, steal secrets, and tamper traffic, undermining **confidentiality** and **integrity** and enabling reuse of captured database credentials.",
+      "remediation": {
+        "cli": "aws rds modify-db-parameter-group --region <REGION_NAME> --db-parameter-group-name <PARAMETER_GROUP_NAME> --parameters ParameterName='rds.force_ssl',ParameterValue='1',ApplyMethod='pending-reboot'",
+        "console_steps": "1. In the AWS Console, go to RDS > Parameter groups\n2. For DB instances:\n   - Edit the DB parameter group attached to the instance (or create one and attach it)\n   - Set rds.force_ssl = 1 for PostgreSQL/SQL Server, or require_secure_transport = 1 for MySQL/MariaDB\n   - Save. If the parameter is static, reboot the instance\n3. For Aurora clusters:\n   - Edit the DB cluster parameter group attached to the cluster (or create one and attach it)\n   - Set rds.force_ssl = 1 for Aurora PostgreSQL, or require_secure_transport = ON for Aurora MySQL\n   - Save. Reboot instances if changes are pending-reboot\n4. Verify the parameter group is associated to the target instance/cluster and status shows the new value applied",
+        "terraform": "# DB instances\nresource \"aws_db_parameter_group\" \"example_pg\" {\n  name   = \"<example_resource_name>\"\n  family = \"<DB_PARAMETER_FAMILY>\"\n\n  parameter {\n    name  = \"rds.force_ssl\"\n    value = \"1\"  # Critical: requires SSL/TLS for PostgreSQL/SQL Server instances\n  }\n}\n\nresource \"aws_db_parameter_group\" \"example_mysql\" {\n  name   = \"<example_resource_name>\"\n  family = \"<DB_PARAMETER_FAMILY>\"\n\n  parameter {\n    name  = \"require_secure_transport\"\n    value = \"1\"  # Critical: requires SSL/TLS for MySQL/MariaDB instances\n  }\n}\n\n# Aurora clusters\nresource \"aws_rds_cluster_parameter_group\" \"example_aurora_pg\" {\n  name   = \"<example_resource_name>\"\n  family = \"<DB_CLUSTER_PARAMETER_FAMILY>\"\n\n  parameter {\n    name  = \"rds.force_ssl\"\n    value = \"1\"  # Critical: requires SSL/TLS for Aurora PostgreSQL clusters\n  }\n}\n\nresource \"aws_rds_cluster_parameter_group\" \"example_aurora_mysql\" {\n  name   = \"<example_resource_name>\"\n  family = \"<DB_CLUSTER_PARAMETER_FAMILY>\"\n\n  parameter {\n    name  = \"require_secure_transport\"\n    value = \"ON\"  # Critical: requires SSL/TLS for Aurora MySQL clusters\n  }\n}",
+        "cloudformation": "# CloudFormation: set required parameter to enforce SSL/TLS\nResources:\n  ExampleDBParameterGroupPostgres:\n    Type: AWS::RDS::DBParameterGroup\n    Properties:\n      Family: <DB_PARAMETER_FAMILY>\n      Description: Enforce SSL/TLS\n      Parameters:\n        rds.force_ssl: \"1\"  # Critical: requires SSL/TLS for PostgreSQL/SQL Server instances\n\n  ExampleDBParameterGroupMySQL:\n    Type: AWS::RDS::DBParameterGroup\n    Properties:\n      Family: <DB_PARAMETER_FAMILY>\n      Description: Enforce SSL/TLS\n      Parameters:\n        require_secure_transport: \"1\"  # Critical: requires SSL/TLS for MySQL/MariaDB instances\n\n  ExampleDBClusterParameterGroupAuroraPostgres:\n    Type: AWS::RDS::DBClusterParameterGroup\n    Properties:\n      Family: <DB_CLUSTER_PARAMETER_FAMILY>\n      Description: Enforce SSL/TLS\n      Parameters:\n        rds.force_ssl: \"1\"  # Critical: requires SSL/TLS for Aurora PostgreSQL clusters\n\n  ExampleDBClusterParameterGroupAuroraMySQL:\n    Type: AWS::RDS::DBClusterParameterGroup\n    Properties:\n      Family: <DB_CLUSTER_PARAMETER_FAMILY>\n      Description: Enforce SSL/TLS\n      Parameters:\n        require_secure_transport: ON  # Critical: requires SSL/TLS for Aurora MySQL clusters"
+      },
+      "recommendation": "Enforce transport encryption at the database layer:\n- Enable `rds.force_ssl=1` or `require_secure_transport` in parameter groups\n- Configure clients to require certificate validation and prevent fallback\n- Use current TLS versions and trusted CAs\n- Prefer private network access as **defense in depth**",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_transport_encrypted",
+      "aws_doc_urls": [
+        "https://aws.amazon.com/premiumsupport/knowledge-center/rds-connect-ssl-connection/",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/PostgreSQL.Concepts.General.SSL.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/transport-encryption.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.3.1"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.38"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.39"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_2"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1040"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1530"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "rds_snapshots_encrypted",
+      "title": "RDS DB instance snapshot or DB cluster snapshot is encrypted",
+      "severity": "high",
+      "resource_type": "AwsRdsDbSnapshot",
+      "category": "encryption",
+      "description": "**RDS DB snapshots** and **DB cluster snapshots** are evaluated for **encryption at rest**, identifying snapshots created with a KMS key versus unencrypted ones.",
+      "risk": "Unencrypted snapshots enable direct access to full database data if backups are leaked, cross-account shared, or stolen. Adversaries can harvest data offline, bypassing network controls, leading to **loss of confidentiality**. Restores from such snapshots propagate the exposure to new instances.",
+      "remediation": {
+        "cli": "aws rds copy-db-snapshot --source-db-snapshot-identifier <example_resource_id> --target-db-snapshot-identifier <example_resource_id>-encrypted --kms-key-id <KMS_KEY_ID>",
+        "console_steps": "1. In the AWS Console, go to RDS > Snapshots\n2. Select the unencrypted snapshot (for clusters, use the DB cluster snapshots tab)\n3. Click Actions > Copy snapshot\n4. Check Enable encryption and choose a KMS key\n5. Click Copy snapshot and wait for completion\n6. After verifying the new encrypted snapshot, delete the original unencrypted snapshot (Actions > Delete snapshot)",
+        "terraform": "resource \"aws_db_snapshot_copy\" \"<example_resource_name>\" {\n  source_db_snapshot_identifier = \"<example_resource_id>\"\n  target_db_snapshot_identifier = \"<example_resource_id>-encrypted\"\n  kms_key_id                    = \"<KMS_KEY_ID>\" # Critical: encrypts the copied snapshot using the specified KMS key\n}",
+        "cloudformation": ""
+      },
+      "recommendation": "Encrypt all RDS snapshots at rest using **KMS**, preferably **customer-managed keys**. Apply **least privilege** to key usage, enforce encryption via templates and automation, and prevent sharing of unencrypted backups. Use **key rotation**, separation of duties, and ensure copies and cross-account shares remain encrypted.",
+      "reference_url": "https://hub.prowler.com/check/rds_snapshots_encrypted",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/snapshot-encrypted.html#",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-4"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.26"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.43"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_1"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.11"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "rds_cluster_critical_event_subscription",
+      "title": "RDS cluster event subscription is enabled for maintenance and failure categories",
+      "severity": "medium",
+      "resource_type": "AwsRdsEventSubscription",
+      "category": "logging_monitoring",
+      "description": "**RDS event subscriptions** for the `db-cluster` source type are enabled and cover critical cluster event categories: **`maintenance`** and **`failure`** (or all cluster events).",
+      "risk": "Without notifications for **cluster maintenance** and **failure**, teams may miss engine updates, failovers, or node crashes, impacting **availability** and increasing MTTR. Prolonged degraded states can cause replication lag and potential **data integrity** issues, hindering timely containment.",
+      "remediation": {
+        "cli": "aws rds create-event-subscription --subscription-name <example_resource_name> --sns-topic-arn <example_resource_arn> --source-type db-cluster --event-categories maintenance failure --enabled",
+        "console_steps": "1. In the AWS Console, go to RDS > Event subscriptions > Create event subscription\n2. Name: enter <example_resource_name>\n3. Send notifications to: Choose existing Amazon SNS ARN and select <example_resource_arn>\n4. Source type: select Clusters\n5. Event categories: select only Maintenance and Failure (unselect others)\n6. Ensure Enabled is on\n7. Click Create",
+        "terraform": "resource \"aws_db_event_subscription\" \"<example_resource_name>\" {\n  name            = \"<example_resource_name>\"\n  sns_topic       = \"<example_resource_arn>\"           # Critical: SNS topic ARN\n  source_type     = \"db-cluster\"                        # Critical: Scope to clusters\n  event_categories = [\"maintenance\", \"failure\"]        # Critical: Required categories\n  enabled         = true                                  # Critical: Must be enabled\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::RDS::EventSubscription\n    Properties:\n      SnsTopicArn: <example_resource_arn>       # Critical: SNS topic to receive notifications\n      SourceType: db-cluster                    # Critical: Scope to DB clusters\n      EventCategories:                          # Critical: Subscribe to required categories only\n        - maintenance\n        - failure\n      Enabled: true                             # Critical: Must be enabled to pass"
+      },
+      "recommendation": "Enable **event subscriptions** for RDS clusters that include `maintenance` and `failure`, delivered via **SNS** to monitored channels.\n- Enforce **least privilege** on topics\n- Separate topics per environment\n- Integrate with on-call/IR playbooks and test alerts\n- Add multiple recipients and escalation for **defense in depth**",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_critical_event_subscription",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Events.html",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Events.Subscribing.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-19"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.19"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "rds_cluster_default_admin",
+      "title": "RDS cluster master username is not admin or postgres",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "access_control",
+      "description": "RDS DB clusters are evaluated for use of a **custom administrator username**, flagging clusters that use defaults such as `admin` or `postgres`.",
+      "risk": "Using a well-known admin username simplifies **credential stuffing** and **brute-force** attempts. Attackers can focus on password guessing, increasing chances of compromise. A successful login enables data theft (**confidentiality**), unauthorized changes (**integrity**), and destructive operations or outages (**availability**).",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS console, go to RDS > Databases > Create database\n2. Choose Amazon Aurora and the same engine family as your current cluster\n3. Under Settings, set Master username to a custom value that is not \"admin\" or \"postgres\" (CRITICAL)\n4. Create the new cluster, migrate your workload to it, update application connections, then delete the old cluster",
+        "terraform": "# Create an RDS DB cluster with a custom admin username\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  cluster_identifier = \"<example_resource_id>\"\n  engine             = \"aurora-mysql\"\n  master_username    = \"<custom_admin_username>\" # CRITICAL: non-default username (not admin/postgres)\n  master_password    = \"<example_password>\"\n}",
+        "cloudformation": "# Create an RDS DB cluster with a custom admin username\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      Engine: aurora-mysql\n      MasterUsername: <custom_admin_username>  # CRITICAL: use a non-default username (not \"admin\" or \"postgres\")\n      MasterUserPassword: <example_password>"
+      },
+      "recommendation": "Create databases with a **unique, non-default admin username** that doesn't reveal environment or org. Apply **least privilege** by using separate, non-admin accounts for applications. Prefer **IAM database authentication** and manage secrets centrally with rotation. Restrict admin access and monitor login attempts.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_default_admin",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-master-username.html#",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-24"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.24"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.1.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.d"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access",
+        "Credential Access"
+      ],
+      "prowler_categories": [
+        "identity-access"
+      ]
+    },
+    {
+      "id": "rds_cluster_deletion_protection",
+      "title": "RDS cluster has deletion protection enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "data_exposure",
+      "description": "**RDS DB clusters** have **deletion protection** enabled (`deletion_protection=true`).",
+      "risk": "Without **deletion protection**, a cluster can be removed by error or misuse, causing sudden **availability** loss and potential **data loss** if backups are outdated. Compromised identities or faulty automation can trigger destructive deletes, degrading **recoverability** and data **integrity**.",
+      "remediation": {
+        "cli": "aws rds modify-db-cluster --db-cluster-identifier <db_cluster_id> --deletion-protection",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases\n2. Select the DB cluster (type: DB cluster)\n3. Click Modify\n4. Enable Deletion protection\n5. Choose Apply immediately and click Modify cluster",
+        "terraform": "# Enable deletion protection on an existing RDS DB Cluster\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  deletion_protection = true  # Critical: prevents cluster deletion and passes the check\n}",
+        "cloudformation": "# CloudFormation: Enable deletion protection on an RDS DB Cluster\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      Engine: aurora-mysql\n      DeletionProtection: true  # Critical: prevents cluster deletion and passes the check"
+      },
+      "recommendation": "Enable **deletion protection** (`deletion_protection=true`) on production and other critical clusters. Enforce via IaC and organizational guardrails; apply **least privilege** to delete/modify actions; require **change control** and approvals. Maintain reliable **backups** to restore when protection must be lifted.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_deletion_protection",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_DeleteInstance.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-7"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.7"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_5"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "rds_cluster_iam_authentication_enabled",
+      "title": "RDS cluster has IAM authentication enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "access_control",
+      "description": "**RDS DB clusters** on supported engines (MySQL/MariaDB/PostgreSQL/Aurora) have **IAM database authentication** enabled for database logins, indicating token-based access managed by IAM instead of static passwords.",
+      "risk": "Without **IAM DB authentication**, databases depend on long-lived passwords. Stolen or reused creds can enable unauthorized connections, data exfiltration, and tampering, harming **confidentiality** and **integrity**. Lacking short-lived tokens and centralized revocation expands blast radius and weakens **access control**.",
+      "remediation": {
+        "cli": "aws rds modify-db-cluster --db-cluster-identifier <DB_CLUSTER_ID> --enable-iam-database-authentication --apply-immediately",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases\n2. Select the DB Cluster (not the instances)\n3. Click Modify\n4. In Database authentication, enable IAM database authentication\n5. Choose Apply immediately and click Modify cluster",
+        "terraform": "# Enable IAM authentication on an existing RDS/Aurora cluster\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  cluster_identifier                   = \"<example_resource_id>\"\n  iam_database_authentication_enabled = true  # Critical: enables IAM DB auth so the check passes\n}",
+        "cloudformation": "# CloudFormation: Enable IAM authentication on an existing RDS/Aurora DB Cluster\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      EnableIAMDatabaseAuthentication: true  # Critical: turns on IAM DB auth for the cluster"
+      },
+      "recommendation": "Enable **IAM database authentication** on supported clusters and enforce **least privilege**. Grant only necessary `rds-db:connect` permissions to specific principals, prefer role-based access for workloads to obtain short-lived tokens, require **TLS**, and deprecate static DB passwords. Pair with auditing and segmentation for **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_iam_authentication_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAMDBAuth.Enabling.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/iam-database-authentication.html#",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/UsingWithRDS.IAMDBAuth.Enabling.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-12"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.1.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.2.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.5.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.1.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.2.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.3.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.7.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.8.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.4.16"
+        }
+      ],
+      "mitre_attack": [
+        "Credential Access"
+      ],
+      "prowler_categories": [
+        "identity-access"
+      ]
+    },
+    {
+      "id": "rds_cluster_integration_cloudwatch_logs",
+      "title": "RDS cluster has CloudWatch Logs export enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "logging_monitoring",
+      "description": "**RDS clusters** running Aurora MySQL, Aurora PostgreSQL, MySQL, or PostgreSQL are assessed for **CloudWatch Logs publishing**, confirming that database logs are exported to a CloudWatch Logs group.",
+      "risk": "Without publishing to CloudWatch, database events lack centralized visibility and retention.\nBrute-force, SQL injection, or privilege misuse may go undetected, hindering forensics and response, risking data confidentiality and integrity and delaying recovery.",
+      "remediation": {
+        "cli": "aws rds modify-db-cluster --db-cluster-identifier <db_cluster_id> --cloudwatch-logs-export-configuration '{\"EnableLogTypes\":[\"<engine_supported_log_type>\"]}' --apply-immediately",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases\n2. Select your DB cluster and choose Modify\n3. Under Log exports, check at least one supported log type for your engine (e.g., error/general/slowquery/audit for MySQL, postgresql for PostgreSQL)\n4. Choose Continue, then Apply immediately, and click Modify cluster",
+        "terraform": "# Terraform: Enable CloudWatch Logs export for an RDS/Aurora DB cluster\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  engine            = \"<engine>\"\n  master_username   = \"<example_username>\"\n  master_password   = \"<example_password>\"\n\n  enabled_cloudwatch_logs_exports = [\n    \"<engine_supported_log_type>\" # CRITICAL: Enables at least one supported log type (e.g., \"error\" for MySQL or \"postgresql\" for PostgreSQL) to pass the check\n  ]\n}",
+        "cloudformation": "# CloudFormation: Enable CloudWatch Logs export for an RDS/Aurora DB cluster\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      Engine: <engine>\n      MasterUsername: <example_username>\n      MasterUserPassword: <example_password>\n      EnableCloudwatchLogsExports:\n        - <engine_supported_log_type>  # CRITICAL: Enables at least one supported log type (e.g., 'error' for MySQL or 'postgresql' for PostgreSQL) to pass the check"
+      },
+      "recommendation": "Publish RDS/Aurora logs to **CloudWatch Logs** and centralize analysis.\nSelect appropriate types (e.g., `error`, `general`, `slowquery`, `audit`), define retention, and create alarms. Limit log access with **least privilege** and integrate with SIEM for defense-in-depth monitoring.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_integration_cloudwatch_logs",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/publishing_cloudwatchlogs.html",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_LogAccess.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-34"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.37"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.1.25"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.2.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.3.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.4.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.5.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.6.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.7.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.2.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.1.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.6.3.28"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "5.3.4.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.2.1.26"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_3"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.15"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "rds_cluster_minor_version_upgrade_enabled",
+      "title": "RDS cluster has automatic minor version upgrades enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "compliance",
+      "description": "**RDS Multi-AZ DB clusters** are configured for **automatic minor engine upgrades** via `auto_minor_version_upgrade`.\n\nThe evaluation checks these clusters to see if this setting is enabled so preferred minor releases are applied during the maintenance window.",
+      "risk": "Without automatic minor upgrades, clusters can miss **security patches**, enabling exploitation of known flaws (confidentiality). Unfixed defects may corrupt data (**integrity**) or trigger crashes and failovers (**availability**). Emergency patching raises downtime and operational risk.",
+      "remediation": {
+        "cli": "aws rds modify-db-cluster --db-cluster-identifier <example_resource_id> --auto-minor-version-upgrade",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases\n2. Select your Multi-AZ DB cluster\n3. Click Modify\n4. Set Auto minor version upgrade to Enabled\n5. Click Continue, then Modify cluster",
+        "terraform": "# Terraform snippet to enable automatic minor version upgrades on an RDS DB cluster\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  cluster_identifier         = \"<example_resource_id>\"\n  auto_minor_version_upgrade = true  # Critical: enables automatic minor engine version upgrades to pass the check\n}",
+        "cloudformation": "# CloudFormation snippet to enable automatic minor version upgrades on an RDS DB cluster\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      AutoMinorVersionUpgrade: true  # Critical: enables automatic minor engine version upgrades to pass the check"
+      },
+      "recommendation": "Enable `auto_minor_version_upgrade` on **RDS Multi-AZ clusters** and align updates with approved maintenance windows. Validate changes in non-production, and document any exceptions with a strict manual patch cadence. This strengthens **defense in depth** and improves **availability**.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_minor_version_upgrade_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/modify-multi-az-db-cluster.html",
+        "https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/RDS/Types/CreateDBClusterMessage.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-35"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.35"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "6.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "6.2.b"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "vulnerabilities"
+      ]
+    },
+    {
+      "id": "rds_cluster_multi_az",
+      "title": "RDS cluster has Multi-AZ enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "compliance",
+      "description": "**RDS DB clusters** are assessed for deployment across **multiple Availability Zones** (*Multi-AZ*), verifying that redundant instances exist to support **automatic failover** instead of a single-AZ configuration.",
+      "risk": "A **single-AZ cluster** is a single point of failure. AZ outages, instance/storage faults, or maintenance can cause extended **downtime**, failed transactions, and worse **RTO/RPO**. Without cross-AZ replicas, recovery may require restores, increasing outage duration and risking service disruption and data consistency impacts.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS console, go to RDS > Databases > Create database\n2. Engine: select MySQL or PostgreSQL\n3. Under Availability and durability, select Multi-AZ DB cluster\n4. Enter DB cluster identifier and master credentials\n5. Choose a DB instance class and create the database\n6. Migrate data to this new Multi-AZ DB cluster and switch your applications to its endpoint",
+        "terraform": "# Terraform: create an RDS Multi-AZ DB cluster (non-Aurora)\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  cluster_identifier         = \"<example_resource_id>\"\n  engine                     = \"mysql\"           # CRITICAL: mysql/postgres with the lines below creates a Multi-AZ DB cluster\n  db_cluster_instance_class  = \"db.r6g.large\"    # CRITICAL: makes this a Multi-AZ DB cluster (1 writer + 2 readers across AZs)\n  storage_type               = \"io1\"             # CRITICAL: required for Multi-AZ DB clusters\n  allocated_storage          = 100                # CRITICAL: required for Multi-AZ DB clusters\n  iops                       = 1000               # CRITICAL: required for Multi-AZ DB clusters\n  master_username            = \"<USERNAME>\"\n  master_password            = \"<PASSWORD>\"\n}",
+        "cloudformation": "# CloudFormation: create an RDS Multi-AZ DB cluster (non-Aurora)\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      Engine: mysql  # CRITICAL: using mysql/postgres with the properties below creates a Multi-AZ DB cluster\n      DBClusterInstanceClass: db.r6g.large  # CRITICAL: required to make it a Multi-AZ DB cluster (creates 1 writer + 2 readers across AZs)\n      AllocatedStorage: 100  # CRITICAL: required for Multi-AZ DB clusters\n      Iops: 1000             # CRITICAL: required for Multi-AZ DB clusters\n      StorageType: io1       # CRITICAL: required for Multi-AZ DB clusters\n      MasterUsername: <USERNAME>\n      MasterUserPassword: <PASSWORD>"
+      },
+      "recommendation": "Enable **Multi-AZ** for production DB clusters to ensure cross-AZ redundancy and **automatic failover**. Choose a model that meets your SLA (one standby or two readable standbys; Aurora spans 3 AZs). Place subnets in distinct AZs, implement connection retries, and regularly test failover to validate **RTO/RPO** and readiness.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_multi_az",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-15",
+        "https://docs.amazonaws.cn/en_us/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html",
+        "https://aws.amazon.com/rds/features/multi-az/"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.15"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "rds_instance_backup_enabled",
+      "title": "RDS instance has backup retention period greater than 0 days",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "data_exposure",
+      "description": "**RDS DB instances** are evaluated for **automated backups** by confirming the backup retention period is greater than `0` days, indicating point-in-time recovery is configured.",
+      "risk": "Without automated backups, you lose **point-in-time recovery**, impacting **availability** and **integrity**.\n\nAccidental deletes, destructive queries, or compromised accounts can cause unrecoverable data loss and prolonged outages, preventing reliable rollback during incidents.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <db_instance_id> --backup-retention-period 1 --apply-immediately",
+        "console_steps": "1. Open the AWS Management Console and go to RDS > Databases\n2. Select the target DB instance and click Modify\n3. In Backup section, set Backup retention period to 1 day (or more)\n4. Check Apply immediately\n5. Click Continue (if shown) and then Modify DB instance",
+        "terraform": "# Terraform: enable automated backups on an RDS instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  allocated_storage      = 20\n  engine                 = \"mysql\"\n  instance_class         = \"db.t3.micro\"\n  username               = \"admin\"\n  password               = \"<example_password>\"\n  backup_retention_period = 1  # CRITICAL: Enables automated backups (>0 days)\n}",
+        "cloudformation": "# CloudFormation: enable automated backups on an RDS instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceClass: db.t3.micro\n      Engine: mysql\n      AllocatedStorage: 20\n      MasterUsername: admin\n      MasterUserPassword: <example_password>\n      BackupRetentionPeriod: 1  # CRITICAL: Enables automated backups (>0 days)"
+      },
+      "recommendation": "Enable **automated backups** with retention > `0` aligned to RPO/RTO. Regularly test restores to validate **PITR**.\n\nApply **least privilege** to backup access, encrypt snapshots, and replicate critical backups to separate locations for **defense in depth** and resilient recovery.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_backup_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-automated-backups-enabled.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.11"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.8"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_4"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_a_1_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_4_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_c"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_2_ii"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_1_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_6_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_6_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_10_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_5_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_13_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ip_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "rc_rp_1"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_32"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1190"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1485"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1486"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1490"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "rds_instance_critical_event_subscription",
+      "title": "RDS instance event subscription is enabled for maintenance, configuration change, and failure categories",
+      "severity": "medium",
+      "resource_type": "AwsRdsEventSubscription",
+      "category": "logging_monitoring",
+      "description": "**RDS event subscriptions** for DB instances are assessed for coverage of the critical categories `maintenance`, `configuration change`, and `failure`.\n\nThe evaluation looks for enabled `db-instance` subscriptions and confirms these categories are included or that all events are selected.",
+      "risk": "Without these notifications, critical DB events go unseen, undermining **availability** and **integrity**. Missed outages, unexpected restarts, or silent parameter changes can delay response, prolong downtime, corrupt data flows, and leave misconfigurations unaddressed.",
+      "remediation": {
+        "cli": "aws rds create-event-subscription --subscription-name <example_resource_name> --sns-topic-arn <sns-topic-arn> --source-type db-instance --event-categories \"maintenance\" \"configuration change\" \"failure\"",
+        "console_steps": "1. Open the AWS Console and go to RDS\n2. In the left menu, select Event subscriptions > Create event subscription\n3. Send notifications to: select an existing SNS topic (<sns-topic-arn>)\n4. Source type: choose Instances\n5. Event categories: select Maintenance, Configuration change, and Failure\n6. Create the subscription",
+        "terraform": "# Terraform: RDS DB instance event subscription\nresource \"aws_db_event_subscription\" \"<example_resource_name>\" {\n  name            = \"<example_resource_name>\"\n  sns_topic       = \"<sns-topic-arn>\"\n  source_type     = \"db-instance\"                           # critical: DB instance events\n  event_categories = [\"maintenance\", \"configuration change\", \"failure\"]  # critical: required categories\n}",
+        "cloudformation": "# CloudFormation: RDS DB instance event subscription\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::EventSubscription\n    Properties:\n      SnsTopicArn: <sns-topic-arn>           # critical: SNS topic to receive notifications\n      SourceType: db-instance                # critical: subscribe to DB instance events\n      EventCategories:                       # critical: required categories for PASS\n        - maintenance\n        - configuration change\n        - failure"
+      },
+      "recommendation": "Establish and sustain **RDS event subscriptions** for `db-instance` that include `maintenance`, `configuration change`, and `failure`.\n- Deliver to monitored channels (ticketing/chat/paging)\n- Enforce **least privilege** on topics\n- Test alert delivery and runbooks\n- Periodically review coverage across Regions",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_critical_event_subscription",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Events.Subscribing.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-instance-level-events.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-20"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.20"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "rds_instance_default_admin",
+      "title": "RDS instance does not use the default master username (admin or postgres)",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "access_control",
+      "description": "**RDS DB instances** are evaluated for use of a **custom administrator username**. The finding identifies instances or clusters where the admin user matches common defaults like `admin` or `postgres` (checked at the instance or cluster level).",
+      "risk": "Using a predictable admin name enables **password spraying**, **credential stuffing**, and username **enumeration**. A successful login can expose data (**confidentiality**), allow tampering (**integrity**), and disrupt service (**availability**). Defaults also attract automated scans targeting known usernames.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases and click Create database\n2. Choose your engine and select Standard create\n3. In Settings, set Master username to a value that is not \"admin\" or \"postgres\"\n4. Complete creation and note the new endpoint\n5. Migrate data from the old instance to the new one (e.g., dump/restore or replication)\n6. Update applications to use the new endpoint, then delete the old instance\n7. If the instance is part of an Aurora cluster, create a new cluster with a non-default master username and migrate to it",
+        "terraform": "# Terraform: Create an RDS instance with a non-default master username\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  engine            = \"mysql\"\n  instance_class    = \"db.t3.micro\"\n  allocated_storage = 20\n  username          = \"<non_default_username>\" # Critical: custom admin username (not \"admin\" or \"postgres\")\n  password          = \"<example_password>\"\n}",
+        "cloudformation": "# CloudFormation: Create an RDS instance with a non-default master username\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      Engine: mysql\n      DBInstanceClass: db.t3.micro\n      AllocatedStorage: 20\n      MasterUsername: <non_default_username>  # Critical: use a custom admin username (not \"admin\" or \"postgres\")\n      MasterUserPassword: <example_password>"
+      },
+      "recommendation": "Adopt a **unique, non-default admin username** for each database and avoid enabling default accounts.\n- Enforce **least privilege** with separate admin and app users\n- Use strong, rotated secrets in a manager and prefer **IAM DB authentication**\n- Restrict network exposure and audit authentication activity",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_default_admin",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-25",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-master-username.html#"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.25"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.1.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.d"
+        }
+      ],
+      "mitre_attack": [
+        "Credential Access"
+      ],
+      "prowler_categories": [
+        "identity-access"
+      ]
+    },
+    {
+      "id": "rds_instance_deletion_protection",
+      "title": "RDS instance has deletion protection enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "data_exposure",
+      "description": "**RDS DB instances** are assessed for **deletion protection**. If an instance belongs to an Aurora cluster, the setting is evaluated at the cluster level; otherwise, it is evaluated on the instance itself.",
+      "risk": "Without **deletion protection**, a user or pipeline can delete a database in one action, causing immediate loss of availability and possible data loss if backups are stale or missing. This heightens exposure to insider misuse, compromised credentials, or faulty automation, increasing recovery time and cost.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <db_instance_id> --deletion-protection --apply-immediately",
+        "console_steps": "1. In the AWS console, go to RDS > Databases\n2. For a standalone DB instance: select the instance > Modify > enable Deletion protection > Continue > Apply immediately > Modify DB instance\n3. For an Aurora/clustered instance: switch to the cluster (Writer) > Modify > enable Deletion protection > Continue > Apply immediately > Modify cluster",
+        "terraform": "# Enable deletion protection on a standalone RDS instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  deletion_protection = true  # Critical: prevents instance deletion\n}\n\n# Enable deletion protection on an RDS/Aurora cluster\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  deletion_protection = true  # Critical: prevents cluster deletion (required for instances in this cluster)\n}",
+        "cloudformation": "# CloudFormation: enable deletion protection\nResources:\n  <example_db_instance_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DeletionProtection: true  # Critical: enables deletion protection for standalone instances\n\n  <example_db_cluster_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      DeletionProtection: true  # Critical: enables deletion protection at cluster level (required for Aurora members)"
+      },
+      "recommendation": "Enable `deletion protection` on production RDS instances and Aurora clusters. Enforce **least privilege** for delete/modify actions and require change control to disable protection. Use **defense in depth** with reliable backups and tested restores to limit impact if a deletion occurs.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_deletion_protection",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/instance-deletion-protection.html",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_DeleteInstance.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.8"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_c_1_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7_4_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_3_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_1_a_1_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_1_a_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_e"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sa_15_a_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_5_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_22"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_13_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_5"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1485"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "rds_instance_event_subscription_security_groups",
+      "title": "RDS event subscription for DB security groups is enabled for configuration change and failure events",
+      "severity": "medium",
+      "resource_type": "AwsRdsEventSubscription",
+      "category": "logging_monitoring",
+      "description": "**RDS event subscriptions** are evaluated for **database security group** events. The check expects an enabled subscription with source type `db-security-group` that includes the `configuration change` and `failure` event categories.",
+      "risk": "Missing alerts on **security group changes** or **failures** reduces visibility and slows response. Undetected rule changes can expose databases, while unnoticed failures prolong outages, impacting **confidentiality** and **availability** through unauthorized access or service disruption.",
+      "remediation": {
+        "cli": "aws rds create-event-subscription --subscription-name <SUBSCRIPTION_NAME> --sns-topic-arn <SNS_TOPIC_ARN> --source-type db-security-group --event-categories \"configuration change\" \"failure\"",
+        "console_steps": "1. Open the AWS Console > RDS > Event subscriptions\n2. Click Create event subscription\n3. Set Name to <SUBSCRIPTION_NAME> and select an existing SNS topic\n4. Set Source type to Security group\n5. Under Event categories, select Configuration change and Failure\n6. Leave Targets as All security groups (no specific IDs)\n7. Ensure Enabled is On and click Create",
+        "terraform": "resource \"aws_db_event_subscription\" \"<example_resource_name>\" {\n  name            = \"<example_resource_name>\"\n  sns_topic       = \"<SNS_TOPIC_ARN>\"\n  source_type     = \"db-security-group\"        # Critical: DB security group events\n  event_categories = [\"configuration change\", \"failure\"]  # Critical: required categories\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::RDS::EventSubscription\n    Properties:\n      SnsTopicArn: <SNS_TOPIC_ARN>\n      SourceType: db-security-group  # Critical: subscribe to DB security group events\n      EventCategories:               # Critical: required categories\n        - configuration change\n        - failure"
+      },
+      "recommendation": "Create or update an **RDS event subscription** for source type `db-security-group` including `configuration change` and `failure`. Route alerts to monitored channels, restrict topic access (**least privilege**), integrate with **incident response**, and enforce change control and **separation of duties** for security group updates.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_event_subscription_security_groups",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-db-security-groups-events.html#",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-22"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.30"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.30"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.28"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.27"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "rds_instance_extended_support",
+      "title": "RDS instance is not enrolled in RDS Extended Support",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "compliance",
+      "description": "**RDS DB instances** are evaluated for enrollment in Amazon RDS Extended Support. The check fails if `EngineLifecycleSupportis` set to `open-source-rds-extended-support`, indicating the instance will incur additional charges after standard support ends.",
+      "risk": "DB instances enrolled in RDS Extended Support can incur additional charges after the end of standard support for the running database major version. Remaining on older major versions can also delay necessary upgrades, increasing operational and security risk.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <DB_INSTANCE_IDENTIFIER> --engine-version <TARGET_ENGINE_VERSION> --allow-major-version-upgrade --apply-immediately\n# For new DB instances created via automation, prevent enrollment by setting the lifecycle option:\naws rds create-db-instance ... --engine-lifecycle-support open-source-rds-extended-support-disabled",
+        "console_steps": "If your automation (CloudFormation/Terraform/SDK) creates or restores DB instances, set EngineLifecycleSupport/LifeCycleSupport to open-source-rds-extended-support-disabled where supported, and ensure your upgrade process keeps engines within standard support.",
+        "terraform": "# Upgrade RDS engine version\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  identifier         = \"<example_resource_id>\"\n  engine             = \"<engine>\"\n  instance_class     = \"db.t3.micro\"\n  allocated_storage  = 20\n\n  engine_version               = \"<SUPPORTED_ENGINE_VERSION>\"  # CRITICAL: use a supported version\n  allow_major_version_upgrade  = true                           # CRITICAL: needed for major upgrades\n  apply_immediately            = true                           # CRITICAL: apply now to pass the check\n}",
+        "cloudformation": "# CloudFormation: upgrade RDS engine version for an existing instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceIdentifier: <example_resource_id>\n      Engine: <engine>\n      DBInstanceClass: db.t3.micro\n      EngineVersion: <SUPPORTED_ENGINE_VERSION>  # CRITICAL: move to a supported engine version\n      AllowMajorVersionUpgrade: true             # CRITICAL: required if upgrading major version\n      ApplyImmediately: true                     # CRITICAL: apply change now to pass the check"
+      },
+      "recommendation": "Upgrade enrolled DB instances to an engine version covered under standard support to stop Extended Support charges. For new DB instances and restores created via automation, explicitly set the engine lifecycle support option to avoid unintended enrollment in RDS Extended Support when that is your policy.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_extended_support",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/extended-support-viewing.html",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/extended-support-charges.html",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/extended-support-creating-db-instance.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "vulnerabilities"
+      ]
+    },
+    {
+      "id": "rds_instance_iam_authentication_enabled",
+      "title": "RDS instance has IAM database authentication enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "access_control",
+      "description": "**RDS DB instances** using MySQL, MariaDB, or PostgreSQL engines (including Aurora variants) have **IAM database authentication** enabled at the instance level or, when part of a cluster, evaluated for cluster-level enablement.",
+      "risk": "Absent **IAM-based, short-lived tokens**, databases rely on **static passwords** in code and configs, increasing theft and reuse.\n\nCompromised DB creds enable unauthorized queries, leading to **data exfiltration** and tampering, and weaken **centralized access control** and rotation.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <DB_INSTANCE_ID> --enable-iam-database-authentication --apply-immediately",
+        "console_steps": "1. In the AWS console, go to RDS > Databases\n2. Select the DB instance and choose Modify\n3. Under Database authentication, select \"Password and IAM database authentication\"\n4. Choose Apply immediately and click Modify DB instance\n5. If the instance is part of an Aurora DB cluster: select the DB cluster instead, choose Modify, enable IAM database authentication, Apply immediately, then Modify",
+        "terraform": "# Enable IAM DB authentication on an RDS instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  iam_database_authentication_enabled = true  # Critical: enables IAM DB auth to pass the check\n}",
+        "cloudformation": "# CloudFormation: enable IAM DB authentication on an RDS instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceIdentifier: <example_resource_id>\n      EnableIAMDatabaseAuthentication: true  # Critical: enables IAM DB auth to pass the check"
+      },
+      "recommendation": "Enable **IAM database authentication** for supported engines and apply **least privilege** with scoped IAM policies. Prefer **short-lived tokens** over static DB passwords, enforce TLS, and phase out embedded credentials.\n\nMonitor authentication activity with audit logs for **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_iam_authentication_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-10",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAMDBAuth.Enabling.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/iam-database-authentication.html#"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.10"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.7"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.7.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.7.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.7.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.7.d"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.1.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.2.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.5.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.1.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.2.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.3.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.7.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.8.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.4.17"
+        }
+      ],
+      "mitre_attack": [
+        "Credential Access"
+      ],
+      "prowler_categories": [
+        "identity-access"
+      ]
+    },
+    {
+      "id": "rds_instance_integration_cloudwatch_logs",
+      "title": "RDS instance exports logs to CloudWatch Logs",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "logging_monitoring",
+      "description": "**RDS DB instances** are configured to **publish database logs** to **CloudWatch Logs** (e.g., `error`, `general`, `slowquery`, `audit`).\n\nThe evaluation identifies instances that have log exports enabled to a CloudWatch log group.",
+      "risk": "Without centralized RDS logs, database activity lacks visibility, hindering detection and response. Credential misuse, SQL injection, data exfiltration, and privilege abuse may go unnoticed, risking **confidentiality** and **integrity**. Unseen errors and slow queries can lead to outages, impacting **availability**.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <db_instance_id> --cloudwatch-logs-export-configuration '{\"EnableLogTypes\":[\"<log_type>\"]}'",
+        "console_steps": "1. Open AWS Console > RDS > Databases\n2. Select your DB instance and choose Modify\n3. In Log exports, select at least one supported log type (e.g., error/general/slowquery/audit/postgresql/alert)\n4. Choose Continue, then Modify DB instance",
+        "terraform": "resource \"aws_db_instance\" \"<example_resource_name>\" {\n  identifier = \"<example_resource_id>\"\n  # Critical: export at least one supported log type to CloudWatch Logs to pass the check\n  enabled_cloudwatch_logs_exports = [\"<log_type>\"]\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceIdentifier: <example_resource_id>\n      # Critical: enabling at least one log type exports it to CloudWatch Logs and makes the check PASS\n      EnableCloudwatchLogsExports:\n        - <log_type>"
+      },
+      "recommendation": "Enable export of relevant RDS logs to **CloudWatch Logs** (`error`, `general`, `slowquery`, `audit`) and standardize across engines. Enforce **least privilege** on log access, set retention, and define metrics/alarms for critical patterns. Integrate with a SIEM. Apply **separation of duties** and **defense in depth** to protect log integrity and monitoring.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_integration_cloudwatch_logs",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/log-exports.html",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/publishing_cloudwatchlogs.html",
+        "https://repost.aws/knowledge-center/rds-aurora-mysql-logs-cloudwatch"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.9"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.1.26"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.2.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.3.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.4.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.5.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.6.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.7.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.2.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.1.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.6.3.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "5.3.4.28"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.2.1.27"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_2"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_3"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_a_1_1"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_3"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_4_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_2_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_6_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_2_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_e"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_f"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_8_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_5_1_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ia_3_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ma_4_1_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_31"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_1_1_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_3_8_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_17"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_20"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_7_8"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_10_1_c"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_32"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.15"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "rds_instance_minor_version_upgrade_enabled",
+      "title": "RDS instance has minor version upgrade enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "compliance",
+      "description": "**RDS DB instances** are evaluated for the `auto_minor_version_upgrade` setting that enables **automatic minor engine updates** during maintenance windows.",
+      "risk": "Without automatic minor upgrades, databases miss **security patches**, leaving known vulnerabilities exploitable and risking **unauthorized data access**. Unapplied fixes can cause **data corruption** and outages, harming **integrity** and **availability**.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <db_instance_id> --auto-minor-version-upgrade --apply-immediately",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases\n2. Select the DB instance and click Modify\n3. Find \"Auto minor version upgrade\" and set it to Enable\n4. Click Continue, check Apply immediately, then click Modify DB instance",
+        "terraform": "# Enable auto minor version upgrades on an RDS instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  allocated_storage          = 20\n  engine                     = \"mysql\"\n  instance_class             = \"db.t3.micro\"\n  username                   = \"<username>\"\n  password                   = \"<password>\"\n  auto_minor_version_upgrade = true  # Critical: turns on automatic minor engine upgrades\n}",
+        "cloudformation": "# CloudFormation: Enable auto minor version upgrades on an RDS instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceIdentifier: <example_resource_id>\n      DBInstanceClass: db.t3.micro\n      Engine: mysql\n      MasterUsername: <username>\n      MasterUserPassword: <password>\n      AllocatedStorage: '20'\n      AutoMinorVersionUpgrade: true  # Critical: ensures RDS applies minor engine updates automatically"
+      },
+      "recommendation": "Enable `auto_minor_version_upgrade` on RDS instances so minor releases are applied promptly. Use maintenance windows and stage testing to limit impact. Follow **defense in depth** and **least privilege**; keep reliable backups and Multi-AZ to preserve continuity if upgrades require rollback.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_minor_version_upgrade_enabled",
+      "aws_doc_urls": [
+        "https://aws.amazon.com/blogs/database/best-practices-for-upgrading-amazon-rds-to-major-and-minor-versions-of-postgresql/",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-auto-minor-version-upgrade.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.3.2"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "2.3.2"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.13"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "6.3.3.10"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1190"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "vulnerabilities"
+      ]
+    },
+    {
+      "id": "rds_instance_multi_az",
+      "title": "RDS instance has Multi-AZ enabled",
+      "severity": "medium",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "compliance",
+      "description": "**RDS DB instances** are evaluated for **Multi-AZ** configuration, either enabled on the instance or inherited from the associated DB cluster.",
+      "risk": "Without **Multi-AZ**, an Availability Zone or instance failure can cause extended downtime and rely on restores, risking loss of recent writes. This degrades **availability** and may affect **integrity**, interrupting applications and breaching SLAs.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <db_instance_id> --multi-az --apply-immediately",
+        "console_steps": "1. Open the AWS Management Console and go to RDS > Databases\n2. Select the affected DB instance and click Modify\n3. Under Availability & durability, set Multi-AZ deployment to Enabled (create a standby)\n4. Check Apply immediately\n5. Click Continue, then Modify DB instance\n6. Wait until status is Available and Multi-AZ shows Yes",
+        "terraform": "# Enable Multi-AZ on an RDS DB instance\nresource \"aws_db_instance\" \"example\" {\n  multi_az = true  # Critical: enables Multi-AZ to pass the check\n}",
+        "cloudformation": "# CloudFormation: enable Multi-AZ on an existing RDS DB instance\nResources:\n  RDSInstance:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      MultiAZ: true  # Critical: enables Multi-AZ to pass the check"
+      },
+      "recommendation": "Apply fault-tolerance and redundancy principles: enable **Multi-AZ** for production RDS workloads. Choose one standby or two readable standbys based on RTO/RPO and performance needs. Regularly test failover, monitor configuration drift, and allow exceptions only with documented, risk-based approval.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_multi_az",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-multi-az.html",
+        "https://aws.amazon.com/rds/features/multi-az/"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.5"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_1_a_1_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_1_a_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_e"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_6_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_5_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_22"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_36"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_13_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "rds_cluster_backtrack_enabled",
+      "title": "RDS Aurora MySQL cluster has Backtrack enabled",
+      "severity": "low",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "compliance",
+      "description": "**Aurora MySQL DB clusters** have **Backtrack** configured with a non-zero `BacktrackWindow`, retaining change records to allow rewinding to a consistent earlier time. *Applies to `aurora-mysql` engines only.*",
+      "risk": "Without **Backtrack**, destructive queries or admin mistakes can't be quickly undone, forcing snapshot/point-in-time restores. This increases recovery time, disrupts availability, and risks data **integrity** from partial restores or rollbacks.\n\nAdversaries who alter data can cause longer impact windows before containment.",
+      "remediation": {
+        "cli": "aws rds restore-db-cluster-to-point-in-time --source-db-cluster-identifier <SOURCE_DB_CLUSTER_ID> --db-cluster-identifier <DB_CLUSTER_ID> --use-latest-restorable-time --backtrack-window 3600",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases and select the Aurora MySQL cluster\n2. Click Actions > Restore to point in time\n3. Choose Use latest restorable time\n4. Set Backtrack window (seconds) to a value > 0 (e.g., 3600)\n5. Enter a new DB cluster identifier and click Restore DB cluster\n6. Cut over applications to the new cluster",
+        "terraform": "# Terraform: Aurora MySQL cluster with Backtrack enabled\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  engine          = \"aurora-mysql\"\n  master_username = \"<MASTER_USERNAME>\"\n  master_password = \"<MASTER_PASSWORD>\"\n  backtrack_window = 3600  # CRITICAL: Enables Backtrack (seconds) so the check passes\n}",
+        "cloudformation": "# CloudFormation: Create Aurora MySQL cluster with Backtrack enabled\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      Engine: aurora-mysql\n      MasterUsername: \"<MASTER_USERNAME>\"\n      MasterUserPassword: \"<MASTER_PASSWORD>\"\n      BacktrackWindow: 3600  # CRITICAL: Enables Backtrack (seconds) so the check passes"
+      },
+      "recommendation": "Enable **Backtrack** on Aurora MySQL clusters and set `BacktrackWindow` to meet RTO while balancing cost and workload. Use it with automated backups for **defense in depth** and resilience.\n\n*For clusters without Backtrack*, provision a clone or new cluster with it enabled; monitor usage and adjust the window as change rates evolve.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_backtrack_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/config/latest/developerguide/aurora-mysql-backtracking-enabled.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-14",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Managing.Backtrack.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/backtrack.html#"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.14"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "rds_cluster_copy_tags_to_snapshots",
+      "title": "RDS DB cluster has copy tags to snapshots enabled",
+      "severity": "low",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "backup_recovery",
+      "description": "**RDS DB clusters** are evaluated for the `CopyTagsToSnapshot` setting that propagates cluster tags to their DB snapshots.\n\n*Aurora tagging is configured at the cluster level; instance-level copying isn't supported.*",
+      "risk": "**Missing tag propagation** leaves snapshots without consistent metadata, weakening **ABAC**, ownership tracking, and retention controls. This can allow overly broad access to backups, hinder incident scoping, and inflate costs-impacting **confidentiality** and operational governance.",
+      "remediation": {
+        "cli": "aws rds modify-db-cluster --db-cluster-identifier <example_resource_id> --copy-tags-to-snapshot",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases\n2. Select the DB cluster and choose Modify\n3. Check Copy tags to snapshots\n4. Click Continue, then Apply changes",
+        "terraform": "# Terraform: enable copying tags to snapshots on an RDS DB cluster\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  copy_tags_to_snapshot = true  # CRITICAL: ensures cluster tags are copied to snapshots\n}",
+        "cloudformation": "# CloudFormation: enable copying tags to snapshots on an RDS DB cluster\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      CopyTagsToSnapshot: true  # CRITICAL: ensures cluster tags are copied to snapshots"
+      },
+      "recommendation": "Enable `CopyTagsToSnapshot` on all applicable **RDS/Aurora clusters**.\n- Standardize required tags (owner, environment, data class)\n- Use **least privilege** and **ABAC** based on tags\n- Automate tagging and periodic audits so snapshots inherit metadata and lifecycle policies",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_copy_tags_to_snapshots",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-16",
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Tagging.html#USER_Tagging.CopyTags"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.16"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.5.13"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": []
+    },
+    {
+      "id": "rds_cluster_non_default_port",
+      "title": "RDS cluster uses a non-default port for its database engine",
+      "severity": "low",
+      "resource_type": "AwsRdsDbCluster",
+      "category": "compliance",
+      "description": "**RDS DB clusters** are assessed for use of a **non-default database port**.\n\nEvaluation focuses on whether the cluster listens on the engine's well-known default port (e.g., `3306`, `5432`, `1433`, `1521`, `50000`) or on a custom port.",
+      "risk": "Using a **default DB port** eases discovery via mass scans and banner-grabbing, enabling:\n- Engine-specific exploit attempts\n- Brute-force/credential-stuffing of logins\n- Targeted DDoS on the service\n\nImpacts: **confidentiality** (unauthorized reads), **integrity** (data changes), **availability** (service disruption).",
+      "remediation": {
+        "cli": "aws rds modify-db-cluster --db-cluster-identifier <db-cluster-id> --port <non-default-port> --apply-immediately",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases\n2. Select your DB cluster (not an individual instance)\n3. Click Modify\n4. Set Database port to a non-default value for the engine\n5. Check Apply immediately\n6. Click Continue, then Modify cluster",
+        "terraform": "# Terraform: Set a non-default port on an RDS/Aurora DB cluster\nresource \"aws_rds_cluster\" \"<example_resource_name>\" {\n  engine          = \"<engine>\"\n  master_username = \"<username>\"\n  master_password = \"<password>\"\n  port            = <non-default-port> # Critical: use a non-default engine port to pass the check\n}",
+        "cloudformation": "# CloudFormation: Set a non-default port on an RDS/Aurora DB cluster\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBCluster\n    Properties:\n      Engine: <engine>\n      MasterUsername: <username>\n      MasterUserPassword: <password>\n      Port: <non-default-port>  # Critical: change to a non-default engine port to pass the check"
+      },
+      "recommendation": "Use a **non-default port** and enforce **least-privilege** network access:\n- Allow only approved sources\n- Keep databases in private subnets\n- Require TLS and strong, centralized auth\n- Monitor failed connections\n\nUpdate application connection strings to the new `port` as part of defense-in-depth.",
+      "reference_url": "https://hub.prowler.com/check/rds_cluster_non_default_port",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-23"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [],
+      "mitre_attack": [
+        "Discovery"
+      ],
+      "prowler_categories": []
+    },
+    {
+      "id": "rds_instance_copy_tags_to_snapshots",
+      "title": "RDS DB instance has copy tags to snapshots enabled",
+      "severity": "low",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "backup_recovery",
+      "description": "**RDS DB instances** are assessed for propagating instance tags to their **DB snapshots** using `CopyTagsToSnapshot`.\n\n*Aurora engines manage this at the cluster level and aren't evaluated per instance.*",
+      "risk": "Snapshots without inherited tags lose ownership, environment, and sensitivity context, degrading visibility and governance. Missing metadata weakens **ABAC**, cost allocation, and lifecycle policies, enabling unintended backup access, orphaned snapshots, and retention drift that impact confidentiality and availability.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <example_resource_id> --copy-tags-to-snapshot --apply-immediately",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases and select the non-Aurora DB instance\n2. Click Modify\n3. Under Additional configuration, enable Copy tags to snapshots\n4. Check Apply immediately and click Modify DB instance",
+        "terraform": "# Terraform: enable copying tags to snapshots on an RDS DB instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  copy_tags_to_snapshot = true  # Critical: ensures DB instance tags are copied to snapshots\n}",
+        "cloudformation": "# CloudFormation: enable copying tags to snapshots on an RDS DB instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      CopyTagsToSnapshot: true  # Critical: ensures DB instance tags are copied to snapshots"
+      },
+      "recommendation": "Enable `CopyTagsToSnapshot` on non-Aurora RDS instances so snapshots inherit required metadata. Establish a consistent **tag taxonomy** and automate enforcement to support **least privilege** via ABAC, cost tracking, and retention controls. For Aurora, configure tag copy at the cluster level.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_copy_tags_to_snapshots",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/systems-manager-automation-runbooks/latest/userguide/automation-aws-enable-tags-snapshot-rds-instance.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-17",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/copy-tags-to-snapshot.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.17"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_5"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": []
+    },
+    {
+      "id": "rds_instance_enhanced_monitoring_enabled",
+      "title": "RDS instance has enhanced monitoring enabled",
+      "severity": "low",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "logging_monitoring",
+      "description": "**RDS DB instances** are evaluated for **Enhanced Monitoring** being enabled, which publishes real-time **OS-level metrics** (CPU, memory, disk, network) to CloudWatch Logs for each instance.",
+      "risk": "Without **Enhanced Monitoring**, you lack **real-time OS telemetry**, delaying detection of resource saturation and abnormal activity.\n\nThis raises MTTR and risks **availability** impacts (timeouts, failovers), reduces **integrity** assurance during incidents, and weakens forensic visibility.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <example_resource_id> --monitoring-interval 60 --monitoring-role-arn <monitoring_role_arn>",
+        "console_steps": "1. In the AWS Console, go to RDS > Databases and select the DB instance\n2. Click Modify\n3. In Monitoring, check Enable Enhanced Monitoring and set Granularity to any non-zero value (e.g., 60 seconds)\n4. Set Monitoring role to Default (creates rds-monitoring-role) or select an existing role\n5. Click Continue, then Modify DB instance to apply",
+        "terraform": "# Enable Enhanced Monitoring on an existing RDS instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  # ...existing required configuration...\n  monitoring_role_arn = \"<monitoring_role_arn>\"  # CRITICAL: Role for publishing OS metrics\n  monitoring_interval = 60                        # CRITICAL: >0 enables Enhanced Monitoring (seconds)\n}",
+        "cloudformation": "# CloudFormation: enable Enhanced Monitoring on an existing RDS instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      DBInstanceIdentifier: <example_resource_id>\n      MonitoringRoleArn: <monitoring_role_arn>   # CRITICAL: IAM role RDS uses to publish OS metrics to CloudWatch Logs\n      MonitoringInterval: 60                     # CRITICAL: >0 enables Enhanced Monitoring (seconds)"
+      },
+      "recommendation": "Enable **Enhanced Monitoring** on RDS, using a `>0s` collection interval aligned to workload and cost. Assign a **least-privilege** role for log delivery, and apply **defense in depth** by centralizing logs, setting **alerts** on key OS metrics, and defining **retention** to support incident response and trend analysis.",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_enhanced_monitoring_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.html",
+        "https://support.icompaas.com/support/solutions/articles/62000233699-ensu-rds-instances-has-enhanced-monitoring-enabled"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_2_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_31"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_36_1_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_2_a"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1496"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "rds_instance_event_subscription_parameter_groups",
+      "title": "RDS DB parameter group event subscription is enabled and subscribes to configuration change events or all categories",
+      "severity": "low",
+      "resource_type": "AwsRdsEventSubscription",
+      "category": "logging_monitoring",
+      "description": "**RDS event subscriptions** for **DB parameter groups** notify on `configuration change` events (or all categories) when the subscription is enabled",
+      "risk": "Missing alerts on parameter changes erodes visibility. Attackers or mistakes can lower TLS requirements, disable auditing, or relax auth, enabling data exposure (**confidentiality**), unauthorized writes (**integrity**), or outages from unsafe settings (**availability**).",
+      "remediation": {
+        "cli": "aws rds create-event-subscription --subscription-name <example_resource_name> --sns-topic-arn <sns-topic-arn> --source-type db-parameter-group --event-categories \"configuration change\" --enabled",
+        "console_steps": "1. In the AWS Console, go to Amazon RDS > Event subscriptions\n2. Click Create event subscription\n3. Send notifications to: select an existing SNS topic\n4. Source type: Parameter groups\n5. Event categories: select Configuration change (or choose All event categories)\n6. Ensure Enabled is On\n7. Click Create",
+        "terraform": "resource \"aws_db_event_subscription\" \"<example_resource_name>\" {\n  name             = \"<example_resource_name>\"\n  sns_topic        = \"<sns-topic-arn>\"\n  source_type      = \"db-parameter-group\"          # Critical: target DB parameter groups\n  event_categories = [\"configuration change\"]       # Critical: include configuration change events\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::RDS::EventSubscription\n    Properties:\n      SnsTopicArn: <sns-topic-arn>\n      SourceType: db-parameter-group  # Critical: targets DB parameter group events\n      EventCategories:\n        - configuration change        # Critical: subscribes to configuration change events\n      Enabled: true                   # Critical: subscription must be enabled"
+      },
+      "recommendation": "Create and maintain an **SNS-backed event subscription** for **DB parameter groups** that includes `configuration change` (or all) and keep it enabled.\n\n- Apply **least privilege** to SNS topics\n- Route to on-call/SIEM and test alerts\n- Enforce change control and monitoring across all Regions",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_event_subscription_parameter_groups",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Events.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-21"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.21"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "rds_instance_non_default_port",
+      "title": "RDS instance uses a non-default port for its engine",
+      "severity": "low",
+      "resource_type": "AwsRdsDbInstance",
+      "category": "compliance",
+      "description": "**RDS DB instances** are evaluated for use of a port that differs from the engine's default. Matching an engine with its default port-`3306` (MySQL/MariaDB/Aurora MySQL), `5432` (PostgreSQL/Aurora), `1521` (Oracle), `1433` (SQL Server), `50000` (Db2)-indicates the instance uses the default listener.",
+      "risk": "Using a **default DB port** increases exposure to broad scans and eases **service fingerprinting**. With weak network controls, attackers can run **credential brute force**, target known **engine exploits**, or trigger **DoS** on the predictable port, threatening confidentiality and availability.",
+      "remediation": {
+        "cli": "aws rds modify-db-instance --db-instance-identifier <db-instance-id> --db-port <non-default-port>",
+        "console_steps": "1. In the AWS Console, go to Amazon RDS > Databases\n2. Select the DB instance and click Modify\n3. Set \"Database port\" to a non-default value for the engine (e.g., not 3306, 5432, 1521, 1433, or 50000)\n4. Click Continue, then Modify DB instance",
+        "terraform": "# Terraform: set a non-default port on an RDS instance\nresource \"aws_db_instance\" \"<example_resource_name>\" {\n  port = <non-default-port>  # Critical: use a non-default DB engine port to pass the check\n}",
+        "cloudformation": "# CloudFormation: set a non-default port on an RDS instance\nResources:\n  <example_resource_name>:\n    Type: AWS::RDS::DBInstance\n    Properties:\n      Port: <non-default_port>  # Critical: use a non-default DB engine port to pass the check"
+      },
+      "recommendation": "Use a **non-default DB port** and enforce **defense in depth**:\n- Apply **least-privilege** network rules\n- Keep databases in **private subnets**; avoid public exposure\n- Require strong authentication and audit logging\n\n*Update client connection strings and security rules when the port changes.*",
+      "reference_url": "https://hub.prowler.com/check/rds_instance_non_default_port",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/RDS/rds-default-port.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/rds-controls.html#rds-23",
+        "https://docs.aws.amazon.com/cli/latest/reference/rds/modify-db-instance.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "RDS.23"
+        }
+      ],
+      "mitre_attack": [
+        "Discovery"
+      ],
+      "prowler_categories": []
+    }
+  ]
+}

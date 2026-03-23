@@ -1,0 +1,2021 @@
+{
+  "service": "elb",
+  "source": "prowler",
+  "extraction_note": "Static metadata extracted from Prowler (Apache 2.0). No runtime dependency.",
+  "check_count": 20,
+  "checks": [
+    {
+      "id": "elb_connection_draining_enabled",
+      "title": "Classic Load Balancer has connection draining enabled",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "network_exposure",
+      "description": "**Classic Load Balancer** has **connection draining** enabled, so deregistering or unhealthy instances stop receiving new requests while existing connections are allowed to complete within the configured drain window.",
+      "risk": "Without **connection draining**, instance removals or health failures can terminate in-flight requests, leading to partial transactions, broken sessions, and inconsistent application state. This reduces **availability** and can impact **data integrity** during deployments, scaling, or failover events.",
+      "remediation": {
+        "cli": "aws elb modify-load-balancer-attributes --load-balancer-name <example_resource_name> --load-balancer-attributes '{\"ConnectionDraining\":{\"Enabled\":true}}'",
+        "console_steps": "1. Open the EC2 console and go to Load Balancers (Classic)\n2. Select the Classic Load Balancer\n3. Choose the Attributes tab, then click Edit\n4. Check Enable connection draining (leave default timeout or set as needed)\n5. Click Save changes",
+        "terraform": "# Terraform: Enable connection draining on a Classic Load Balancer\nresource \"aws_elb\" \"<example_resource_name>\" {\n  name               = \"<example_resource_name>\"\n  availability_zones = [\"us-east-1a\"]\n\n  listener {\n    lb_port           = 80\n    lb_protocol       = \"http\"\n    instance_port     = 80\n    instance_protocol = \"http\"\n  }\n\n  connection_draining = true  # CRITICAL: enables connection draining so existing connections complete\n  # connection_draining_timeout can be omitted (defaults to 300s)\n}",
+        "cloudformation": "# CloudFormation: Enable connection draining on a Classic Load Balancer\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancing::LoadBalancer\n    Properties:\n      Listeners:\n        - InstancePort: 80\n          LoadBalancerPort: 80\n          Protocol: HTTP\n      AvailabilityZones:\n        - us-east-1a\n      ConnectionDrainingPolicy:\n        Enabled: true  # CRITICAL: turns on connection draining so in-flight requests complete\n        # Timeout is optional; default 300s is used if omitted"
+      },
+      "recommendation": "Enable **connection draining** on all Classic Load Balancers and set a drain interval aligned to typical request latency. Coordinate autoscaling and deployments to allow graceful instance shutdowns. Monitor errors and retries to validate behavior and adjust the `timeout` conservatively to protect **availability** and **integrity**.",
+      "reference_url": "https://hub.prowler.com/check/elb_connection_draining_enabled",
+      "aws_doc_urls": [
+        "https://aws.amazon.com/blogs/aws/elb-connection-draining-remove-instances-from-service-with-care/",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELB/elb-connection-draining-enabled.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/elb-controls.html#elb-7",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-conn-drain.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "elb_cross_zone_load_balancing_enabled",
+      "title": "Classic Load Balancer has cross-zone load balancing enabled",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "network_exposure",
+      "description": "Classic Load Balancer with **cross-zone load balancing** distributes requests across registered targets in all enabled Availability Zones.\n\nThis evaluates whether that setting is `enabled`, instead of restricting distribution to targets within only the same zone.",
+      "risk": "Without **cross-zone load balancing**, traffic can concentrate in one AZ due to DNS skew or uneven capacity, creating **hot spots**, timeouts, and latency. This degrades service **availability** and increases the chance of cascading failures during AZ impairment or instance loss.",
+      "remediation": {
+        "cli": "aws elb modify-load-balancer-attributes --load-balancer-name <load-balancer-name> --load-balancer-attributes \"{\\\"CrossZoneLoadBalancing\\\":{\\\"Enabled\\\":true}}\"",
+        "console_steps": "1. Open the AWS EC2 console\n2. Go to Load Balancing > Load Balancers and select your Classic Load Balancer\n3. Open the Attributes tab and click Edit\n4. Enable Cross-zone load balancing\n5. Click Save changes",
+        "terraform": "# Terraform: Enable cross-zone load balancing on a Classic Load Balancer\nresource \"aws_elb\" \"<example_resource_name>\" {\n  name = \"<example_resource_name>\"\n\n  listener {\n    lb_port           = 80\n    lb_protocol       = \"http\"\n    instance_port     = 80\n    instance_protocol = \"http\"\n  }\n\n  availability_zones = [\"<example_az>\"]\n\n  cross_zone_load_balancing = true  # Critical: enables cross-zone load balancing to pass the check\n}",
+        "cloudformation": "# CloudFormation: Enable cross-zone load balancing on a Classic Load Balancer\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancing::LoadBalancer\n    Properties:\n      CrossZone: true  # Critical: enables cross-zone load balancing to pass the check\n      Listeners:\n        - LoadBalancerPort: 80\n          InstancePort: 80\n          Protocol: HTTP\n      AvailabilityZones:\n        - <example_az>"
+      },
+      "recommendation": "Set `cross-zone load balancing` to `enabled` on Classic Load Balancers and use at least two AZs.\n\nBalance capacity per AZ, enforce robust health checks with autoscaling, and design for **high availability** so load remains evenly distributed during demand spikes or partial AZ outages.",
+      "reference_url": "https://hub.prowler.com/check/elb_cross_zone_load_balancing_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/elb-controls.html#elb-9",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-crosszone-lb.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELB/elb-cross-zone-load-balancing-enabled.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.9"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_5"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "elb_desync_mitigation_mode",
+      "title": "Classic Load Balancer desync mitigation mode is defensive or strictest",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "network_exposure",
+      "description": "**Classic Load Balancer** `desync_mitigation_mode` is evaluated to determine whether it is configured as **`defensive`** or **`strictest`**. Any other mode (such as `monitor`) is identified for attention.",
+      "risk": "Without strict desync mitigation, **HTTP request smuggling** can occur, enabling:\n- Cache/queue poisoning (**integrity**)\n- Session hijacking and data exposure (**confidentiality**)\n- Unintended backend actions and abuse (**availability**)",
+      "remediation": {
+        "cli": "aws elb modify-load-balancer-attributes --load-balancer-name <load-balancer-name> --load-balancer-attributes '{\"AdditionalAttributes\":[{\"Key\":\"elb.http.desyncmitigationmode\",\"Value\":\"defensive\"}]}'",
+        "console_steps": "1. Open the AWS Management Console and go to EC2\n2. Under Load Balancing, select Load Balancers\n3. Select your Classic Load Balancer\n4. On the Attributes tab, click Edit\n5. Set Desync mitigation mode to Defensive or Strictest\n6. Click Save changes",
+        "terraform": "resource \"aws_elb\" \"<example_resource_name>\" {\n  name               = \"<example_resource_name>\"\n  availability_zones = [\"<example_az>\"]\n\n  listener {\n    instance_port     = 80\n    instance_protocol = \"http\"\n    lb_port           = 80\n    lb_protocol       = \"http\"\n  }\n\n  desync_mitigation_mode = \"defensive\" # Critical: sets CLB desync mitigation to defensive to pass the check\n}",
+        "cloudformation": ""
+      },
+      "recommendation": "Set CLB desync mitigation to **`defensive`** or, where compatible, **`strictest`**. Validate in staging to avoid client breakage. Apply **defense in depth**: enforce strict header handling, pair with WAF controls, and monitor non-compliant request indicators.",
+      "reference_url": "https://hub.prowler.com/check/elb_desync_mitigation_mode",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-desync-mitigation-mode.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/elb-controls.html#elb-14",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELB/enable-configure-desync-mitigation-mode.html",
+        "https://support.icompaas.com/support/solutions/articles/62000233337-ensure-classic-load-balancer-is-configured-with-defensive-or-strictest-desync-mitigation-mode"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.1.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.2.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.3.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.4.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.5.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.6.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.7.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.2.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.1.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.6.3.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "5.3.4.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.2.1.5"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access",
+        "Defense Evasion"
+      ],
+      "prowler_categories": []
+    },
+    {
+      "id": "elb_insecure_ssl_ciphers",
+      "title": "Elastic Load Balancer HTTPS listeners, if present, use the ELBSecurityPolicy-TLS-1-2-2017-01 policy",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "encryption",
+      "description": "Elastic Load Balancer HTTPS listeners are assessed for use of a **strong TLS policy**. Listeners associated with `ELBSecurityPolicy-TLS-1-2-2017-01` are considered to negotiate only modern protocols and ciphers, avoiding legacy SSL/TLS and weak suites.",
+      "risk": "Legacy TLS or weak ciphers allow downgrades and man-in-the-middle decryption or tampering. Attackers can capture credentials, inject responses, and pivot, undermining data-in-transit **confidentiality** and **integrity**, and risking **availability** through failed handshakes.",
+      "remediation": {
+        "cli": "aws elb set-load-balancer-policies-of-listener --load-balancer-name <lb_name> --load-balancer-port 443 --policy-names ELBSecurityPolicy-TLS-1-2-2017-01",
+        "console_steps": "1. Open the AWS Management Console and go to EC2\n2. In the left menu, under Load Balancing, click Load Balancers\n3. Select your Classic Load Balancer\n4. On the Listeners tab, click Manage listeners (or Edit)\n5. Select the HTTPS (port 443) listener and under Security policy choose ELBSecurityPolicy-TLS-1-2-2017-01\n6. Click Save changes",
+        "terraform": "# Create and attach TLS 1.2-only policy to a Classic ELB HTTPS listener\nresource \"aws_load_balancer_policy\" \"<example_resource_name>\" {\n  load_balancer_name = \"<example_resource_name>\"\n  policy_name        = \"ELBSecurityPolicy-TLS-1-2-2017-01\"  # Critical: policy named as required by the check\n  policy_type_name   = \"SSLNegotiationPolicyType\"\n\n  policy_attributes {\n    name  = \"Reference-Security-Policy\"\n    value = \"ELBSecurityPolicy-TLS-1-2-2017-01\"  # Critical: reference the predefined TLS 1.2 policy\n  }\n}\n\nresource \"aws_load_balancer_listener_policy\" \"<example_resource_name>\" {\n  load_balancer_name = \"<example_resource_name>\"\n  load_balancer_port = 443\n  policy_names       = [aws_load_balancer_policy.<example_resource_name>.policy_name]  # Critical: attach policy to HTTPS listener\n}",
+        "cloudformation": "# CloudFormation: Classic ELB with TLS 1.2-only security policy on HTTPS listener\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancing::LoadBalancer\n    Properties:\n      AvailabilityZones:\n        - <example_az>\n      Listeners:\n        - LoadBalancerPort: 443\n          InstancePort: 443\n          Protocol: HTTPS\n          InstanceProtocol: HTTPS\n          SSLCertificateId: <example_certificate_arn>\n          PolicyNames:\n            - ELBSecurityPolicy-TLS-1-2-2017-01  # Critical: attach TLS 1.2-only policy to the HTTPS listener\n      Policies:\n        - PolicyName: ELBSecurityPolicy-TLS-1-2-2017-01  # Critical: create policy referencing the predefined TLS 1.2 policy\n          PolicyType: SSLNegotiationPolicyType\n          Attributes:\n            - Name: Reference-Security-Policy\n              Value: ELBSecurityPolicy-TLS-1-2-2017-01  # Critical: enforce TLS 1.2-only"
+      },
+      "recommendation": "Standardize on ELB policies enforcing **TLS 1.2+** with modern AEAD ciphers; disable legacy protocols and weak suites. Enable server cipher order, retire outdated policies, and review regularly for crypto agility. Validate client compatibility, use strong certificates, and monitor negotiation results.",
+      "reference_url": "https://hub.prowler.com/check/elb_insecure_ssl_ciphers",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELB/elb-security-policy.html",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/ssl-config-update.html",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS",
+        "NIST-800-53",
+        "PCI-DSS"
+      ],
+      "compliance_details": [],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "elb_internet_facing",
+      "title": "Elastic Load Balancer is not internet-facing",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "network_exposure",
+      "description": "Elastic Load Balancers are evaluated for the `scheme` to determine whether they are **internet-facing** or internal, indicating if the endpoint is publicly reachable via a public DNS name.",
+      "risk": "An unintended **internet-facing** load balancer exposes backends to the Internet, enabling reconnaissance, credential stuffing, and exploitation of app flaws. This can lead to data exposure (confidentiality), unauthorized changes (integrity), and **DDoS** or resource exhaustion (availability).",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In AWS Console, go to EC2 > Load Balancers\n2. Click Create load balancer (Application or Network)\n3. Set Scheme to Internal\n4. Select at least two subnets and a security group; recreate listeners/target groups as needed\n5. Create the new load balancer and update DNS to its DNS name\n6. Delete the old internet-facing load balancer",
+        "terraform": "resource \"aws_lb\" \"<example_resource_name>\" {\n  internal        = true  # CRITICAL: sets scheme to internal so it's not internet-facing\n  subnets         = [\"<example_resource_id>\", \"<example_resource_id>\"]\n  security_groups = [\"<example_resource_id>\"]\n}",
+        "cloudformation": "# CloudFormation: create an internal load balancer\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::LoadBalancer\n    Properties:\n      Scheme: internal  # CRITICAL: makes the load balancer internal (not internet-facing)\n      Subnets:\n        - <example_resource_id>\n        - <example_resource_id>\n      SecurityGroups:\n        - <example_resource_id>"
+      },
+      "recommendation": "Use `internal` load balancers for private services and restrict exposure with **security groups**, subnets, and allowlists. For public endpoints, apply **defense in depth**: associate an **AWS WAF** web ACL (*when supported*), enforce **TLS**, least-privilege network rules, and consider **Shield** or rate limiting. Regularly review necessity of public access.",
+      "reference_url": "https://hub.prowler.com/check/elb_internet_facing",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-associating-aws-resource.html",
+        "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-elasticloadbalancingv2-loadbalancer.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELB/internet-facing-load-balancers.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access"
+      ],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "elb_is_in_multiple_az",
+      "title": "Classic Load Balancer is in multiple Availability Zones",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "network_exposure",
+      "description": "**Classic Load Balancer** spans at least the configured number of **Availability Zones**.\n\nThe evaluation identifies load balancers enabled in fewer AZs than the specified minimum.",
+      "risk": "Operating in too few AZs makes the load balancer a **single point of failure**. An AZ outage or zonal degradation can cause **service unavailability**, dropped connections, and uneven capacity, undermining application **availability** and resilience and increasing recovery time.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. Open the Amazon EC2 console and go to Load Balancers\n2. Select your Classic Load Balancer (type: classic)\n3. Choose Edit subnets (or the Subnets tab > Edit)\n4. Add a subnet from a different Availability Zone than the existing one (ensure at least two AZs)\n5. Click Save\n6. If your CLB is in EC2-Classic, use Edit Availability Zones instead and select an additional AZ, then Save",
+        "terraform": "# Terraform: Ensure CLB spans at least two Availability Zones by adding two subnets\nresource \"aws_elb\" \"<example_resource_name>\" {\n  name    = \"<example_resource_name>\"\n  subnets = [\n    \"<example_subnet_id_a>\", # Critical: subnet in AZ A to ensure multiple AZs\n    \"<example_subnet_id_b>\"  # Critical: subnet in different AZ (>=2 AZs total)\n  ]\n\n  listener {\n    lb_port        = 80\n    lb_protocol    = \"http\"\n    instance_port  = 80\n  }\n}",
+        "cloudformation": "# CloudFormation: Ensure CLB spans at least two Availability Zones by adding two subnets\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancing::LoadBalancer\n    Properties:\n      Subnets:\n        - <example_subnet_id_a>  # Critical: add a subnet in AZ A to ensure multiple AZs\n        - <example_subnet_id_b>  # Critical: add a subnet in a different AZ (>=2 AZs total)\n      Listeners:\n        - LoadBalancerPort: 80\n          InstancePort: 80\n          Protocol: HTTP"
+      },
+      "recommendation": "Design for **multi-AZ high availability**:\n- Enable at least `2` AZs per load balancer\n- Distribute targets evenly and use Auto Scaling across AZs\n- Enable **cross-zone load balancing** to smooth imbalances\n- Regularly test failover and health thresholds\n\nApply **fault isolation** and **defense in depth** principles.",
+      "reference_url": "https://hub.prowler.com/check/elb_is_in_multiple_az",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELB/ec2-instances-distribution-across-availability-zones.html",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-crosszone-lb.html",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html#classic-load-balancer-overview"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.10"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "elb_logging_enabled",
+      "title": "Elastic Load Balancer has access logs to S3 configured",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "logging_monitoring",
+      "description": "**Elastic Load Balancers** have **access logs** configured to deliver request metadata (client IPs, paths, status, TLS details) to **Amazon S3**",
+      "risk": "Without **ELB access logs**, you lose **visibility** into edge traffic, reducing detection of reconnaissance, brute-force, and exploitation attempts. This hampers forensics and incident timelines, risking undetected data exfiltration (confidentiality), untraceable changes (integrity), and delayed response to outages or DDoS (availability).",
+      "remediation": {
+        "cli": "aws elb modify-load-balancer-attributes --load-balancer-name <lb_name> --load-balancer-attributes AccessLog={Enabled=true,S3BucketName=<bucket_name>}",
+        "console_steps": "1. In the AWS Console, go to EC2 > Load Balancers\n2. Select the load balancer and choose Edit attributes (or the Attributes tab)\n3. Turn on Access logs\n4. Enter the S3 URI (e.g., s3://<bucket_name>)\n5. Click Save",
+        "terraform": "# Enable access logs for an ELBv2 load balancer (minimal)\nresource \"aws_lb\" \"<example_resource_name>\" {\n  load_balancer_type = \"network\"\n  subnets            = [\"<example_resource_id>\", \"<example_resource_id>\"]\n\n  access_logs {                   # CRITICAL: Enables S3 access logs\n    bucket  = \"<example_resource_name>\"  # CRITICAL: S3 bucket for logs\n    enabled = true                 # CRITICAL: Turn on access logging\n  }\n}",
+        "cloudformation": "# CloudFormation: Enable access logs for a Classic Load Balancer (CLB)\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancing::LoadBalancer\n    Properties:\n      Listeners:\n        - LoadBalancerPort: 80\n          InstancePort: 80\n          Protocol: HTTP\n      AvailabilityZones:\n        - <example_resource_id>\n      AccessLoggingPolicy:               # CRITICAL: Enables S3 access logs\n        Enabled: true                    # CRITICAL: Turn on access logging\n        S3BucketName: <example_resource_name>  # CRITICAL: S3 bucket to store logs"
+      },
+      "recommendation": "Enable **access logs** to Amazon S3 (`access_logs.s3.enabled=true`). Apply **least privilege** bucket policies, encrypt objects, and restrict read access. Define lifecycle retention and centralize analysis. Monitor for delivery failures and alert on anomalies. Standardize across all load balancers via IaC as part of **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/elb_logging_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/enable-access-logs.html",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/access-log-collection.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ElasticBeanstalk/enable-access-logs.html",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.2.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.d"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.1.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.2.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.3.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.4.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.5.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.6.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.7.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.2.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.1.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.6.3.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "5.3.4.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.2.1.20"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_2"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_3"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_a_1_1"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_2"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_d"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_6_ii"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_2_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_e"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_f"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_8_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_5_1_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ia_3_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ma_4_1_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_31"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_17"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_7_8"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_30"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.15"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "elb_ssl_listeners",
+      "title": "Elastic Load Balancer has only HTTPS or SSL listeners",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "encryption",
+      "description": "**Elastic Load Balancers** are assessed for client-facing listener protocols. Only `HTTPS` or `SSL` are considered encrypted; any `HTTP` or `TCP` listener indicates plaintext between clients and the load balancer.",
+      "risk": "Plaintext listeners enable network eavesdropping and content injection, compromising **confidentiality** and **integrity**. Attackers on public or untrusted paths can harvest credentials and session tokens or alter traffic via MITM, leading to data exposure and unauthorized access.",
+      "remediation": {
+        "cli": "aws elb delete-load-balancer-listeners --load-balancer-name <lb_name> --load-balancer-ports 80",
+        "console_steps": "1. In the AWS console, go to EC2 > Load Balancers (Classic)\n2. Select the load balancer and open the Listeners tab\n3. Click Edit and remove any listener with Protocol HTTP or TCP\n4. Add a listener with Protocol HTTPS (port 443) and select an SSL certificate\n5. Save changes",
+        "terraform": "# Classic ELB with only encrypted (HTTPS) listener\nresource \"aws_elb\" \"<example_resource_name>\" {\n  availability_zones = [\"<example_az>\"]\n\n  listener {\n    lb_port            = 443\n    lb_protocol        = \"https\"   # CRITICAL: enforce encrypted listener\n    instance_port      = 80\n    instance_protocol  = \"http\"\n    ssl_certificate_id = \"<certificate_arn>\"  # CRITICAL: required for HTTPS/SSL\n  }\n}",
+        "cloudformation": "# CloudFormation: Classic ELB with only encrypted (HTTPS) listener\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancing::LoadBalancer\n    Properties:\n      AvailabilityZones:\n        - <example_az>\n      Listeners:\n        - Protocol: HTTPS           # CRITICAL: enforce encrypted listener\n          LoadBalancerPort: 443\n          InstanceProtocol: HTTP\n          InstancePort: 80\n          SSLCertificateId: <certificate_arn>  # CRITICAL: required for HTTPS termination"
+      },
+      "recommendation": "Enforce **encryption in transit** by using only `HTTPS`/`TLS` listeners. Redirect `HTTP` to `HTTPS` and retire plaintext listeners. Use trusted certificates (e.g., ACM) and modern TLS policies; align with **zero trust** and **defense in depth**. *If needed*, use end-to-end TLS to targets and monitor certificate health.",
+      "reference_url": "https://hub.prowler.com/check/elb_ssl_listeners",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELB/elb-listener-security.html",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-security-policy-table.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "PCI-DSS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1.g"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.5.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.5.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.7.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.1.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_4_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_ii"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_22"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_24_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_9_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ia_5_1_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_4_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_4_g"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_13_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_23"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_23_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_1_a_2"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_32"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1040"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "elb_ssl_listeners_use_acm_certificate",
+      "title": "Classic Load Balancer HTTPS/SSL listeners use ACM-issued certificates",
+      "severity": "medium",
+      "resource_type": "AwsElbLoadBalancer",
+      "category": "encryption",
+      "description": "Classic Load Balancer HTTPS/SSL listeners use **AWS Certificate Manager** certificates that are **Amazon-issued** (certificate type `AMAZON_ISSUED`).",
+      "risk": "Using imported or non Amazon-issued certificates reduces control over issuance and rotation, increasing chances of **expired or weak TLS**. This can trigger **service outages** and enable **man-in-the-middle** interception, compromising data **confidentiality** and **integrity**.",
+      "remediation": {
+        "cli": "aws elb set-load-balancer-listener-ssl-certificate --load-balancer-name <load-balancer-name> --load-balancer-port <port> --ssl-certificate-id <acm_certificate_arn>",
+        "console_steps": "1. In the AWS Console, go to EC2 > Load Balancing > Load Balancers (Classic)\n2. Select the Classic Load Balancer\n3. Open the Listeners tab and choose the HTTPS/SSL listener\n4. Click Edit (or Change SSL certificate)\n5. Select an ACM certificate that is Amazon-issued (not imported)\n6. Save changes",
+        "terraform": "# Terraform: Attach an Amazon-issued ACM cert to a CLB HTTPS/SSL listener\nresource \"aws_elb\" \"<example_resource_name>\" {\n  availability_zones = [\"<example_az>\"]\n\n  listener {\n    lb_port            = 443\n    lb_protocol        = \"https\"\n    instance_port      = 443\n    instance_protocol  = \"https\"\n    ssl_certificate_id = \"<acm_certificate_arn>\" # critical: Amazon-issued ACM cert to satisfy ELB.2\n  }\n}",
+        "cloudformation": "# CloudFormation: Attach an Amazon-issued ACM cert to a CLB HTTPS/SSL listener\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancing::LoadBalancer\n    Properties:\n      AvailabilityZones:\n        - <example_az>\n      Listeners:\n        - LoadBalancerPort: 443\n          InstancePort: 443\n          Protocol: HTTPS\n          SSLCertificateId: <acm_certificate_arn>  # critical: use Amazon-issued ACM certificate to pass ELB.2"
+      },
+      "recommendation": "Standardize on **Amazon-issued ACM certificates** for CLB HTTPS/SSL listeners to ensure managed validation and **automatic renewal**.\n\nApply **least privilege** to certificate operations, automate rotation, and monitor certificate health as part of **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/elb_ssl_listeners_use_acm_certificate",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/elb-controls.html#elb-2",
+        "https://docs.aws.amazon.com/config/latest/developerguide/elb-acm-certificate-required.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.5.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.5.9"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.5.10"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.14"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.14"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.5.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.5.9"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.5.10"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.7.10"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.7.11"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.7.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.7.13"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.1.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.1.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.13"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.6.1.2.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.6.1.2.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.6.1.3.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.6.1.3.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.6.1.4.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.6.1.4.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.6.1.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.6.1.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.1.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.1.7"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.2.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.2.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.4.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.4.7"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.6.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.6.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.7.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.7.7.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.1.14"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.1.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.1.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.1.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.1.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.10"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.11"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.13"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.30"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.31"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.32"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.14"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.15"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "elbv2_cross_zone_load_balancing_enabled",
+      "title": "ELBv2 Network or Gateway Load Balancer has cross-zone load balancing enabled",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "compliance",
+      "description": "**Network and Gateway Load Balancers** have **cross-zone load balancing** enabled (`load_balancing.cross_zone.enabled`), so each node distributes requests to targets in all enabled Availability Zones rather than only its own.",
+      "risk": "Without cross-zone distribution, traffic can concentrate in one zone, degrading **availability** through target saturation, uneven failover, and connection drops. Zonal impairment can cause partial outages and increase **latency** under load.",
+      "remediation": {
+        "cli": "aws elbv2 modify-load-balancer-attributes --load-balancer-arn <load-balancer-arn> --attributes Key=load_balancing.cross_zone.enabled,Value=true",
+        "console_steps": "1. Open the AWS EC2 console and go to Load Balancers\n2. Select your Network or Gateway Load Balancer\n3. Choose the Attributes tab > Edit attributes\n4. Turn on Cross-zone load balancing\n5. Save changes",
+        "terraform": "resource \"aws_lb\" \"<example_resource_name>\" {\n  load_balancer_type = \"network\"\n  subnets            = [\"<subnet-id-1>\", \"<subnet-id-2>\"]\n  enable_cross_zone_load_balancing = true  # Critical: enable cross-zone load balancing\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::LoadBalancer\n    Properties:\n      Type: network\n      Subnets:\n        - <subnet-id-1>\n        - <subnet-id-2>\n      LoadBalancerAttributes:\n        - Key: load_balancing.cross_zone.enabled  # Critical: enable cross-zone load balancing\n          Value: true  # Ensures the check passes for NLB/GLB"
+      },
+      "recommendation": "Enable **cross-zone load balancing** to spread load across zones and design for AZ redundancy.\n\n- Balance capacity per AZ and use health-based routing\n- Avoid single-AZ dependencies and sticky designs\n- Monitor zonal health to sustain **fault tolerance**",
+      "reference_url": "https://hub.prowler.com/check/elbv2_cross_zone_load_balancing_enabled",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELBv2/enable-cross-zone-load-balancing.html#",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/network-load-balancers.html#cross-zone-load-balancing"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_5"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "elbv2_deletion_protection",
+      "title": "ELBv2 load balancer has deletion protection enabled",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "network_exposure",
+      "description": "**ELBv2 load balancers** with **deletion protection** (`deletion_protection.enabled`) are resistant to deletion through standard APIs.\n\nThe assessment determines whether this attribute is enabled on each load balancer.",
+      "risk": "Without **deletion protection**, a user or automated process can delete the load balancer, cutting off service endpoints and breaking routing, harming **availability**.\n\nMalicious or mistaken deletes enable **DoS**, disrupt blue/green rollbacks, and increase incident recovery time.",
+      "remediation": {
+        "cli": "aws elbv2 modify-load-balancer-attributes --load-balancer-arn <lb_arn> --attributes Key=deletion_protection.enabled,Value=true",
+        "console_steps": "1. In the AWS Console, go to EC2 > Load Balancers (under Load Balancing)\n2. Select the target load balancer\n3. Open the Attributes tab and click Edit attributes\n4. Enable Deletion protection\n5. Click Save changes",
+        "terraform": "resource \"aws_lb\" \"<example_resource_name>\" {\n  subnets = [\"<example_subnet_id_1>\", \"<example_subnet_id_2>\"]\n\n  enable_deletion_protection = true # Critical: enables deletion protection to pass the check\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::LoadBalancer\n    Properties:\n      Subnets:\n        - <example_subnet_id_1>\n        - <example_subnet_id_2>\n      LoadBalancerAttributes:\n        - Key: deletion_protection.enabled  # Critical: enable deletion protection\n          Value: \"true\"                   # Ensures the LB cannot be deleted accidentally"
+      },
+      "recommendation": "Enable **deletion protection** for production and other critical load balancers.\n\nEnforce **least privilege** to restrict delete actions, apply governance (tags and policy guardrails) for protected assets, and require **change control** with approvals. *For pipelines*, add checks that block deletion of protected resources.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_deletion_protection",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELBv2/deletion-protection.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.6"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7_4_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_2_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_2_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_3_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_8_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_1_a_1_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_1_a_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_a_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_e"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sa_15_a_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_5_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_22"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_3"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "elbv2_desync_mitigation_mode",
+      "title": "Application Load Balancer has desync mitigation mode set to strictest or defensive, or drops invalid header fields",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "network_exposure",
+      "description": "**Application Load Balancer** settings are reviewed for **HTTP desync protections**. It evaluates `routing.http.desync_mitigation_mode` for `strictest` or `defensive`; when neither is configured, it checks `routing.http.drop_invalid_header_fields.enabled` is `true` as a compensating control.",
+      "risk": "Lacking robust desync mitigation enables inconsistent HTTP parsing and **request smuggling**:\n- **Confidentiality**: token theft, data exfiltration\n- **Integrity**: cache/queue poisoning, unauthorized actions\n- **Availability**: backend exhaustion and outages\n\nOnly dropping invalid headers reduces but does not eliminate this exposure.",
+      "remediation": {
+        "cli": "aws elbv2 modify-load-balancer-attributes --load-balancer-arn <ALB_ARN> --attributes Key=routing.http.desync_mitigation_mode,Value=strictest",
+        "console_steps": "1. Open the AWS Console and go to EC2 > Load Balancers\n2. Select your Application Load Balancer\n3. Choose Actions > Edit attributes (or the Attributes tab > Edit)\n4. Set Desync mitigation mode to Strictest (or Defensive)\n5. Save changes",
+        "terraform": "# Terraform: Set ALB desync mitigation mode\nresource \"aws_lb\" \"<example_resource_name>\" {\n  name    = \"<example_resource_name>\"\n  subnets = [\"<example_subnet_id1>\", \"<example_subnet_id2>\"]\n\n  desync_mitigation_mode = \"strictest\" # Critical: enforce strictest/defensive desync mitigation to pass the check\n}",
+        "cloudformation": "# CloudFormation: Set ALB desync mitigation mode\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::LoadBalancer\n    Properties:\n      Type: application\n      Subnets:\n        - <example_subnet_id1>\n        - <example_subnet_id2>\n      LoadBalancerAttributes:\n        - Key: routing.http.desync_mitigation_mode  # Critical: enforce strictest/defensive desync mitigation to pass the check\n          Value: strictest"
+      },
+      "recommendation": "Set ALBs to `desync_mitigation_mode`=`strictest` (*or* `defensive` if compatibility is required) and keep `routing.http.drop_invalid_header_fields.enabled`=`true`.\n\nApply **defense in depth**: validate RFC-compliant requests, roll out changes gradually with monitoring, and enforce **least privilege** on downstream services.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_desync_mitigation_mode",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/elb-controls.html#elb-12",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELBv2/drop-invalid-header-fields-enabled.html",
+        "https://support.icompaas.com/support/solutions/articles/62000233515-ensure-the-application-load-balancer-is-configured-with-strictest-desync-mitigation-mode",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#desync-mitigation-mode"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "6.6"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access"
+      ],
+      "prowler_categories": []
+    },
+    {
+      "id": "elbv2_insecure_ssl_ciphers",
+      "title": "ELBv2 load balancer uses a secure SSL policy on HTTPS listeners",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "encryption",
+      "description": "**ELBv2 HTTPS listeners** are assessed for use of **strong TLS policies**. Listeners whose `ssl_policy` is not in the approved set (TLS 1.2/1.3-focused policies) may include weak protocols or ciphers.",
+      "risk": "Legacy or weak ciphers enable **downgrade** and **man-in-the-middle** attacks, allowing decryption of sessions, credential theft, and request tampering. This undermines **confidentiality** and **integrity** of data in transit and can expose cookies or tokens for **account takeover**.",
+      "remediation": {
+        "cli": "aws elbv2 modify-listener --listener-arn <listener_arn> --ssl-policy ELBSecurityPolicy-TLS13-1-2-2021-06",
+        "console_steps": "1. In the AWS Console, go to EC2 > Load Balancers\n2. Select the load balancer and open the Listeners tab\n3. Select the HTTPS listener and choose Edit\n4. Set Security policy to ELBSecurityPolicy-TLS13-1-2-2021-06 (or any approved policy)\n5. Save changes",
+        "terraform": "# Terraform: Ensure HTTPS listener uses a secure SSL policy\nresource \"aws_lb_listener\" \"<example_resource_name>\" {\n  load_balancer_arn = \"<example_resource_arn>\"\n  port              = 443\n  protocol          = \"HTTPS\"\n  ssl_policy        = \"ELBSecurityPolicy-TLS13-1-2-2021-06\" # FIX: approved secure policy\n  certificate_arn   = \"<example_certificate_arn>\"\n\n  default_action {\n    type             = \"forward\"\n    target_group_arn = \"<example_resource_arn>\"\n  }\n}",
+        "cloudformation": "# CloudFormation: Set a secure SSL policy on an HTTPS listener\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::Listener\n    Properties:\n      LoadBalancerArn: <example_resource_arn>\n      Protocol: HTTPS\n      Port: 443\n      DefaultActions:\n        - Type: forward\n          TargetGroupArn: <example_resource_arn>\n      Certificates:\n        - CertificateArn: <example_certificate_arn>\n      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06  # FIX: uses an approved secure policy to eliminate insecure ciphers"
+      },
+      "recommendation": "Enforce **modern TLS** on load balancer listeners:\n- Use AWS recommended policies like `ELBSecurityPolicy-TLS13-1-2-2021-06`\n- Disable TLS 1.0/1.1 and weak ciphers; prefer suites with **forward secrecy**\n- Periodically review and update policies\n\nApply **defense in depth** with strict client access and **least privilege** for changes.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_insecure_ssl_ciphers",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELBv2/security-policy.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS",
+        "PCI-DSS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_23_5"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "elbv2_internet_facing",
+      "title": "Application Load Balancer is not publicly accessible (no inbound TCP from 0.0.0.0/0 or ::/0)",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "network_exposure",
+      "description": "**ELBv2 Application Load Balancers** configured as `internet-facing` are assessed for exposure by reviewing attached **security groups**.\n\nInbound TCP rules that allow `0.0.0.0/0` or `::/0` indicate unrestricted internet reachability.",
+      "risk": "**Unrestricted ALB access** lets any client reach exposed endpoints, enabling **credential stuffing**, automated scanning, and **web exploits**.\n\nImpacts:\n- Confidentiality: data exfiltration\n- Integrity: unauthorized changes\n- Availability: increased attack surface and **DoS** potential",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In AWS Console, go to EC2 > Load Balancers and select the ALB\n2. In the Description tab, note the attached Security Group and open it\n3. Click Edit inbound rules\n4. Delete any TCP rule with Source 0.0.0.0/0 or ::/0\n5. If access is needed, add only specific private CIDRs or trusted security groups\n6. Click Save rules",
+        "terraform": "# Security Group for ALB with no public (0.0.0.0/0 or ::/0) TCP ingress\nresource \"aws_security_group\" \"<example_resource_name>\" {\n  name   = \"alb-restricted-sg\"\n  vpc_id = \"<example_resource_id>\"\n\n  ingress {\n    from_port   = 80\n    to_port     = 80\n    protocol    = \"tcp\"\n    cidr_blocks = [\"10.0.0.0/8\"] # Critical: restricts inbound to private CIDR, preventing public access\n  }\n}",
+        "cloudformation": "# CloudFormation Security Group for ALB with no public (0.0.0.0/0 or ::/0) TCP ingress\nResources:\n  <example_resource_name>:\n    Type: AWS::EC2::SecurityGroup\n    Properties:\n      GroupDescription: ALB SG restricted ingress\n      VpcId: \"<example_resource_id>\"\n      SecurityGroupIngress:\n        - IpProtocol: tcp\n          FromPort: 80\n          ToPort: 80\n          CidrIp: 10.0.0.0/8  # Critical: restricts inbound to private CIDR, preventing public access"
+      },
+      "recommendation": "Enforce **least privilege** on security groups: avoid `0.0.0.0/0`; allow only trusted CIDRs or upstream services.\n\nUse an `internal` load balancer for non-public apps.\n\nFor public endpoints, layer **WAF** rules, strict TLS, and rate limiting; consider **CloudFront/Shield** for defense in depth and reduced direct exposure.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_internet_facing",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-associating-aws-resource.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELBv2/internet-facing-load-balancers.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access"
+      ],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "elbv2_is_in_multiple_az",
+      "title": "ELBv2 load balancer is configured across multiple Availability Zones",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "network_exposure",
+      "description": "ELBv2 load balancers (Application, Network, or Gateway) are assessed for distribution across multiple **Availability Zones**. The finding indicates whether each load balancer spans at least the configured minimum number of AZs (default `2`).",
+      "risk": "Limiting a load balancer to one AZ introduces a single point of failure. An AZ outage, zonal degradation, or imbalanced target capacity can cause downtime, dropped connections, and deployment risk, undermining service **availability** and resiliency.",
+      "remediation": {
+        "cli": "aws elbv2 set-subnets --load-balancer-arn <LOAD_BALANCER_ARN> --subnets <SUBNET_ID_A> <SUBNET_ID_B>",
+        "console_steps": "1. Open AWS Console > EC2 > Load Balancers\n2. Select the load balancer\n3. Go to the Network mapping tab and click Edit subnets\n4. Enable at least two Availability Zones by selecting one subnet in each of two AZs\n5. Click Save changes",
+        "terraform": "# Ensure ELBv2 spans at least two Availability Zones\nresource \"aws_lb\" \"<example_resource_name>\" {\n  subnets = [\n    \"<subnet_id_a>\",  # critical: add a second AZ/subnet\n    \"<subnet_id_b>\"   # critical: ensures the load balancer spans >=2 AZs\n  ]\n}",
+        "cloudformation": "# CloudFormation: ensure the ELBv2 spans at least two AZs by specifying two subnets\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::LoadBalancer\n    Properties:\n      Subnets:\n        - <subnet_id_a>  # critical: add a second AZ/subnet\n        - <subnet_id_b>  # critical: ensures the load balancer spans >=2 AZs"
+      },
+      "recommendation": "Operate each load balancer across at least **two AZs** and ensure every enabled AZ has healthy, scaled targets.\n- Distribute capacity per AZ; use autoscaling\n- Keep health checks effective\n- Consider cross-zone load balancing to absorb bursts\n- Regularly test failover",
+      "reference_url": "https://hub.prowler.com/check/elbv2_is_in_multiple_az",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/availability-zones.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELBv2/enable-multi-az.html",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html#availability-zones"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.13"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "elbv2_listeners_underneath",
+      "title": "ELBv2 load balancer has at least one listener",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "network_exposure",
+      "description": "**ELBv2 load balancer** requires at least one **listener** (protocol and port) to accept client connections and route requests to target groups. The finding indicates whether listeners are defined on the load balancer.",
+      "risk": "Without a listener, the load balancer cannot accept connections, making back-end services unreachable. This harms **availability**, leads to client timeouts and errors, and disrupts integrations that rely on the load balancer's DNS endpoint.",
+      "remediation": {
+        "cli": "aws elbv2 create-listener --load-balancer-arn <LOAD_BALANCER_ARN> --protocol HTTP --port 80 --default-actions 'Type=fixed-response,FixedResponseConfig={StatusCode=200}'",
+        "console_steps": "1. In the AWS Console, go to EC2 > Load Balancing > Load Balancers\n2. Select the load balancer with the finding\n3. Open the Listeners tab and click Add listener\n4. Set Protocol to HTTP and Port to 80\n5. For Default action, choose Return fixed response and set Status code to 200\n6. Click Create/Save to add the listener",
+        "terraform": "# Terraform: add a minimal listener to the ELBv2\nresource \"aws_lb_listener\" \"<example_resource_name>\" {\n  load_balancer_arn = \"<example_load_balancer_arn>\"  # Critical: attaches the listener to the load balancer\n  port              = 80                               # Critical: defines the listener port\n  protocol          = \"HTTP\"                          # Critical: defines the listener protocol\n\n  default_action {                                     # Critical: required default action so the listener is valid\n    type = \"fixed-response\"\n    fixed_response {\n      status_code = \"200\"                             # Critical: required for fixed-response action\n    }\n  }\n}",
+        "cloudformation": "# CloudFormation: add a minimal listener to the ELBv2\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::Listener\n    Properties:\n      LoadBalancerArn: <example_load_balancer_arn>  # Critical: attaches the listener to the load balancer\n      Port: 80                                      # Critical: defines the listener port\n      Protocol: HTTP                                # Critical: defines the listener protocol\n      DefaultActions:\n        - Type: fixed-response                       # Critical: minimal required default action so the listener is valid\n          FixedResponseConfig:\n            StatusCode: '200'                       # Critical: required for fixed-response action"
+      },
+      "recommendation": "Define at least one listener per load balancer. Prefer **HTTPS** on `443` to protect data in transit, and expose only required ports. Apply **least privilege** by limiting protocols and rules to intended traffic, and set an explicit default action to avoid unintended routing.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_listeners_underneath",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "elbv2_logging_enabled",
+      "title": "ELBv2 Application Load Balancer has access logs to S3 configured",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "logging_monitoring",
+      "description": "**ELBv2 Application Load Balancers** are evaluated for **access logging** enabled to Amazon S3, capturing request details such as timestamps, client IPs, paths, and response codes.",
+      "risk": "Absent **ALB access logs** reduces **visibility** and hampers **incident detection** and **forensics**. Malicious requests, credential stuffing, or data exfiltration via the load balancer can go unnoticed, undermining **confidentiality** and **integrity**, and delaying recovery from **availability** incidents.",
+      "remediation": {
+        "cli": "aws elbv2 modify-load-balancer-attributes --load-balancer-arn <lb_arn> --attributes Key=access_logs.s3.enabled,Value=true Key=access_logs.s3.bucket,Value=<bucket_name>",
+        "console_steps": "1. In AWS Console, go to EC2 > Load Balancers and select your Application Load Balancer\n2. Open the Attributes (or Edit attributes) section and find Access logs\n3. Check Enable access logs and choose the S3 bucket for delivery\n4. Save changes",
+        "terraform": "# Terraform: enable ALB access logs to S3\nresource \"aws_lb\" \"<example_resource_name>\" {\n  name            = \"<example_resource_name>\"\n  security_groups = [\"<example_security_group_id>\"]\n  subnets         = [\"<subnet_id_1>\", \"<subnet_id_2>\"]\n\n  access_logs {\n    bucket  = \"<example_resource_name>\"  # critical: destination S3 bucket for logs\n    enabled = true                        # critical: enable ALB access logging\n  }\n}",
+        "cloudformation": "# CloudFormation: enable ALB access logs to S3\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::LoadBalancer\n    Properties:\n      Subnets:\n        - <subnet_id_1>\n        - <subnet_id_2>\n      SecurityGroups:\n        - <example_security_group_id>\n      LoadBalancerAttributes:\n        - Key: access_logs.s3.enabled  # critical: enable ALB access logging\n          Value: \"true\"\n        - Key: access_logs.s3.bucket   # critical: destination S3 bucket for logs\n          Value: \"<example_resource_name>\""
+      },
+      "recommendation": "Enable **ALB access logging** to a dedicated, encrypted S3 bucket. Apply **least privilege** to the bucket for delivery and readers, set lifecycle policies for retention, and consider `Object Lock` to deter tampering. Centralize logs in a **SIEM** and alert on anomalies as part of **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_logging_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELBv2/access-log.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.2.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.d"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.1"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_2"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_3"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_a_1_1"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_2"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_d"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_6_ii"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_2_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_e"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_f"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_8_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_5_1_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ia_3_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ma_4_1_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_31"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_17"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_7_8"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_30"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.15"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "elbv2_nlb_tls_termination_enabled",
+      "title": "ELBv2 Network Load Balancer has TLS termination enabled",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "encryption",
+      "description": "**Network Load Balancers** with listeners using the `TLS` protocol indicate **TLS termination** at the load balancer. The evaluation identifies NLBs that have at least one `TLS` listener versus those using plain `TCP`/`UDP` or deferring encryption to targets.",
+      "risk": "Lack of NLB-level TLS termination can leave transit data unencrypted or managed inconsistently on instances, undermining **confidentiality** and **integrity**. It also shifts handshake CPU cost to targets, reducing **availability** and making them more susceptible to connection floods and downgrade or weak-cipher exposures.",
+      "remediation": {
+        "cli": "aws elbv2 create-listener --load-balancer-arn <nlb_arn> --protocol TLS --port 443 --ssl-policy ELBSecurityPolicy-TLS13-1-2-2021-06 --certificates CertificateArn=<certificate_arn> --default-actions Type=forward,TargetGroupArn=<target_group_arn>",
+        "console_steps": "1. In the AWS Console, go to EC2 > Load Balancers and select your Network Load Balancer\n2. Open the Listeners tab and click Add listener\n3. Set Protocol to TLS and Port to 443\n4. Select an ACM certificate and a security policy\n5. Set Default action to Forward to your target group\n6. Click Save changes",
+        "terraform": "# Terraform: Add a TLS listener to enable TLS termination on the NLB\nresource \"aws_lb_listener\" \"<example_resource_name>\" {\n  load_balancer_arn = \"<example_resource_arn>\"\n  port              = 443\n  protocol          = \"TLS\"  # critical: enables TLS termination\n  ssl_policy        = \"ELBSecurityPolicy-TLS13-1-2-2021-06\"  # critical: required for TLS\n  certificate_arn   = \"<example_resource_arn>\"  # critical: server certificate for TLS termination\n\n  default_action {\n    type             = \"forward\"\n    target_group_arn = \"<example_resource_arn>\"\n  }\n}",
+        "cloudformation": "# CloudFormation: Add a TLS listener to enable TLS termination on the NLB\nResources:\n  \"<example_resource_name>\":\n    Type: AWS::ElasticLoadBalancingV2::Listener\n    Properties:\n      LoadBalancerArn: \"<example_resource_arn>\"\n      Protocol: TLS  # critical: enables TLS termination on the NLB\n      Port: 443\n      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06  # critical: required when Protocol is TLS\n      Certificates:\n        - CertificateArn: \"<example_resource_arn>\"  # critical: server certificate for TLS termination\n      DefaultActions:\n        - Type: forward\n          TargetGroupArn: \"<example_resource_arn>\""
+      },
+      "recommendation": "Enable **TLS listeners** to terminate client encryption at the NLB and enforce centralized, modern cipher policies and certificate rotation. Apply **defense in depth** by re-encrypting to targets when needed, limit backend access to the NLB, and automate certificate lifecycle with secure storage and monitoring for deprecated protocols.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_nlb_tls_termination_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/network/listener-update-rules.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/ELBv2/network-load-balancer-listener-security.html#"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "NIST-800-53",
+        "PCI-DSS"
+      ],
+      "compliance_details": [],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "elbv2_ssl_listeners",
+      "title": "ELBv2 Application Load Balancer listeners use HTTPS or redirect HTTP to HTTPS",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "encryption",
+      "description": "**Application Load Balancer listeners** are assessed for **encrypted ingress**: either only `HTTPS` listeners are present, or any `HTTP` listener redirects to `HTTPS`.",
+      "risk": "Exposed `HTTP` paths allow traffic to travel in plaintext, enabling interception, credential theft, session hijacking, and response tampering. This weakens confidentiality and integrity and makes **MITM** on public or shared networks feasible.",
+      "remediation": {
+        "cli": "aws elbv2 modify-listener --listener-arn <listener_arn> --default-actions '[{\"Type\":\"redirect\",\"RedirectConfig\":{\"Protocol\":\"HTTPS\",\"Port\":\"443\",\"StatusCode\":\"HTTP_301\"}}]'",
+        "console_steps": "1. Open the EC2 console and go to Load Balancers\n2. Select the Application Load Balancer and open the Listeners tab\n3. Select the HTTP:80 listener and choose Edit (or View/edit rules)\n4. Set the default action to Redirect to, Protocol: HTTPS, Port: 443, Status code: HTTP_301\n5. Save changes",
+        "terraform": "# Terraform: Redirect HTTP listener to HTTPS\nresource \"aws_lb_listener\" \"<example_resource_name>\" {\n  load_balancer_arn = \"<example_resource_id>\"\n  protocol          = \"HTTP\"\n  port              = 80\n\n  default_action {\n    type = \"redirect\"\n    redirect {\n      protocol   = \"HTTPS\"   # Critical: redirect to HTTPS\n      port       = \"443\"     # Critical: target HTTPS port\n      status_code = \"HTTP_301\" # Critical: enforce redirect\n    }\n  }\n}",
+        "cloudformation": "# CloudFormation: Redirect HTTP listener to HTTPS\nResources:\n  <example_resource_name>:\n    Type: AWS::ElasticLoadBalancingV2::Listener\n    Properties:\n      LoadBalancerArn: <example_resource_id>\n      Protocol: HTTP\n      Port: 80\n      DefaultActions:\n        - Type: redirect\n          RedirectConfig:\n            Protocol: HTTPS  # Critical: redirect HTTP to HTTPS\n            Port: '443'      # Critical: target HTTPS port\n            StatusCode: HTTP_301  # Critical: enforce redirect"
+      },
+      "recommendation": "Enforce **TLS everywhere**: use `HTTPS` listeners and make all `HTTP` listeners redirect to `HTTPS` only. Do not forward plaintext. Apply **defense in depth** with strong TLS policies and managed certificates, and consider `HSTS` to prevent users from reaching `http`.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_ssl_listeners",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/elb-controls.html#elb-1",
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1.g"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1.a"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1040"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "elbv2_waf_acl_attached",
+      "title": "Application Load Balancer has a WAF Web ACL attached",
+      "severity": "medium",
+      "resource_type": "AwsElbv2LoadBalancer",
+      "category": "network_exposure",
+      "description": "Application Load Balancers are evaluated for an associated **AWS WAF web ACL** that governs HTTP(S) requests. The evaluation detects ALBs missing a web ACL and recognizes associations from **WAFv2** or regional **WAF Classic**.",
+      "risk": "Absent a **WAF web ACL**, ALBs accept unfiltered Layer 7 traffic, enabling:\n- **Injection** (SQLi/XSS) harming confidentiality and integrity\n- **Credential stuffing** and **bot abuse**\n- **Resource exhaustion** degrading availability",
+      "remediation": {
+        "cli": "aws wafv2 associate-web-acl --web-acl-arn <WEB_ACL_ARN> --resource-arn <ALB_ARN>",
+        "console_steps": "1. In the AWS Console, open **WAF & Shield**\n2. Go to **Web ACLs** and select your regional Web ACL\n3. Click **Associated AWS resources** > **Associate resource**\n4. Select the target **Application Load Balancer** and click **Associate**",
+        "terraform": "# Associate WAFv2 Web ACL with an ALB\nresource \"aws_wafv2_web_acl_association\" \"<example_resource_name>\" {\n  resource_arn = \"<example_resource_id>\" # CRITICAL: ALB ARN\n  web_acl_arn  = \"<example_resource_id>\" # CRITICAL: WAFv2 Web ACL ARN\n}",
+        "cloudformation": "# CloudFormation: associate an existing WAFv2 Web ACL to an ALB\nResources:\n  <example_resource_name>:\n    Type: AWS::WAFv2::WebACLAssociation\n    Properties:\n      ResourceArn: <example_resource_id>  # CRITICAL: ALB ARN to protect\n      WebACLArn: <example_resource_id>    # CRITICAL: WAFv2 Web ACL ARN to attach"
+      },
+      "recommendation": "Associate a **WAF web ACL** with each ALB as **defense in depth**. Use managed and custom rules, IP reputation lists, and rate limiting to block attacks. Continuously tune policies and monitor logs. *Apply least privilege* by scoping rules to required paths, methods, and sources.",
+      "reference_url": "https://hub.prowler.com/check/elbv2_waf_acl_attached",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-associating-aws-resource.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "ELB.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.1.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.1.4.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "6.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "6.4.1.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "6.4.2.1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_21"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1190"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1059"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1046"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access"
+      ],
+      "prowler_categories": []
+    }
+  ]
+}

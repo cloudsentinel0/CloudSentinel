@@ -1,233 +1,111 @@
 # Common Security Patterns
 
-Cross-service patterns used alongside every service skill file. Service skills should **reference** these patterns, not redefine them.
+Shared prompt-time rules for every CloudSentinel scan. Service skill files should add service-specific detection logic, not restate these baselines.
 
----
-
-## 1. Input & Output Contract (Universal)
-
-These rules apply to **every** service scan. Service skill files must NOT restate them.
+## 1. Universal Contract
 
 ### Input Interpretation
-1. `PRIMARY SERVICE` section = full audit scope. Analyze every resource.
-2. `DEPENDENCY CONTEXT` sections = supporting evidence only.
-3. Do NOT perform standalone audits of dependency services.
-4. Do NOT emit dependency-service findings unless directly required to explain a primary-service attack path.
-5. Missing/empty dependency sections are neither secure nor insecure. State what could not be evaluated.
-6. Do NOT invent resources, permissions, or trust relationships not visible in the input.
+- `PRIMARY SERVICE` = full audit scope. Analyze all resources in that section.
+- `DEPENDENCY CONTEXT` = supporting evidence only.
+- Do not perform standalone audits of dependency services.
+- Do not invent resources, permissions, trust relationships, or reachability.
+- Missing data is not proof of security or insecurity. State what could not be validated.
 
-### Output Contract
-- Return **valid JSON only**. No markdown fences or prose outside the JSON object.
-- `findings[].severity`: `CRITICAL` | `HIGH` | `MEDIUM` | `LOW`
-- `findings[].status`: `TRUE` | `NEEDS_REVIEW` — never use `NEEDS_REVIEW` as a severity value.
-- `quick_wins[]` entries: `finding_id`, `action`, `effort`, `impact`
-- `attack_paths[].id`: `AP-{NUMBER}` format
-- `full_path_summary`: real resource IDs/names from the scan in arrow notation
+### Output Rules
+- Return valid JSON only.
+- `findings[].severity` must be `CRITICAL`, `HIGH`, `MEDIUM`, or `LOW`.
+- `findings[].status` must be `TRUE` or `NEEDS_REVIEW`.
+- Never emit false findings.
+- `attack_paths[]` are only for evidence-backed multi-hop chains.
 
----
+## 2. Severity Baselines
 
-## 2. Severity Adjustment Matrix
+Apply the service skill base severity, then modify using this order:
+- Public, attached, running, and reachable resources: raise severity.
+- Stopped or unreachable resources: lower one level when appropriate.
+- Unattached or orphaned resources: cap at `MEDIUM` unless direct public exposure still matters.
+- Production tags or names (`prod`, `production`, `live`, `payment`, `api`, `db`, `auth`, `customer`, `critical`, `pci`, `pii`): raise one level.
+- Dev/test/lab/sandbox indicators: lower one level when risk is not externally reachable.
+- Findings that participate in a confirmed attack path: raise one level.
+- Shared resources affecting many workloads: mention amplified blast radius.
+- Internet-facing resources with logging disabled: mention that attacks may go undetected.
 
-Base severity comes from the service skill file. These **universal modifiers** always apply on top:
+## 3. Cross-Service Detection Baselines
 
-| Modifier | Effect | Example |
-|----------|--------|---------|
-| Resource is attached + running + public IP | Raise severity | Open SSH on running public instance → CRITICAL |
-| Resource is stopped or no public IP | Lower one level | Open SSH on stopped instance → HIGH |
-| Resource is unattached / orphaned | Cap at MEDIUM | Permissive rule on unattached SG → MEDIUM |
-| Production tags present (`prod`, `production`, `live`, `payment`, `api`, `db`, `auth`, `customer`, `pci`, `pii`) | Raise one level | Unencrypted volume on prod DB → HIGH |
-| Dev/test/lab/sandbox tags | Lower one level | Open port on `sandbox` instance → downgrade |
-| Finding enables a confirmed attack path | Raise one level | IMDSv1 on public instance with powerful role → CRITICAL |
-| Shared resource (SG on multiple instances, policy on multiple roles) | Note blast radius | Permissive SG attached to 10 instances → amplifier |
-| Resource is internet-facing + no logging | Compound risk | Mention in narrative: attacks could go undetected |
+### Public Exposure
+- Admin or database ports exposed to `0.0.0.0/0` or `::/0`: `CRITICAL`.
+- `IpProtocol: -1` from the internet on in-use resources: `CRITICAL`.
+- `Principal: "*"` or equivalent public access on sensitive resources: `CRITICAL`.
+- Public snapshots: `CRITICAL`.
+- Public AMIs: usually `HIGH`, raise if sensitive internal content is implied.
+- `PubliclyAccessible: true` only becomes severe when combined with real internet reachability.
 
----
+### Encryption
+- Unencrypted data at rest: `MEDIUM`.
+- Unencrypted sensitive or production data: `HIGH`.
+- Unencrypted backups or snapshots: `MEDIUM`, raise if sensitive.
+- Missing TLS or insecure transport on reachable services: `HIGH`.
+- SSE-S3 instead of SSE-KMS is not a finding unless the scan or policy context makes CMK usage important.
 
-## 3. Public Exposure Patterns
+### Logging and Monitoring
+- Logging disabled on internet-facing resources: `HIGH`.
+- Logging disabled on sensitive internal resources: usually `MEDIUM`.
+- If another serious finding exists and visibility is missing, mention compounded risk in the narrative.
 
-These patterns apply across all services that can be publicly accessible.
+### Least Privilege
+- `Action: *` with `Resource: *`: `CRITICAL`.
+- Wildcard on sensitive actions like `iam:PassRole`, `kms:Decrypt`, `secretsmanager:GetSecretValue`, `ssm:GetParameter*`, `sts:AssumeRole`: `HIGH`.
+- `iam:PassRole` plus compute creation rights: `CRITICAL`.
+- `iam:CreatePolicyVersion` plus `iam:SetDefaultPolicyVersion`: `CRITICAL`.
+- Inline policies are a finding only when they materially weaken auditability or privilege scope.
 
-| Signal | Service Examples | Baseline Severity |
-|--------|-----------------|-------------------|
-| `0.0.0.0/0` or `::/0` in inbound rules | EC2 SGs, VPC NACLs | CRITICAL (admin/DB ports), HIGH (other ports) |
-| `Principal: *` or `Principal: "*"` in policies | S3 bucket policy, VPC endpoint policy, IAM trust | CRITICAL if write/delete, HIGH if read-only |
-| `PubliclyAccessible: true` | RDS, Redshift | CRITICAL if SG also allows internet |
-| Public snapshot / public AMI | EC2/EBS snapshots, AMIs | CRITICAL (snapshot), HIGH (AMI) |
-| Anonymous ACL grants (`AllUsers`, `AuthenticatedUsers`) | S3 ACLs | CRITICAL (write), HIGH (read) |
-| Website hosting enabled on bucket | S3 | Raise severity if combined with sensitive data |
-| `IpProtocol: -1` (all traffic) with `0.0.0.0/0` | EC2 SGs | CRITICAL if attached to running instance |
+### Hygiene and Staleness
+- Missing key tags (`Name`, `Environment`, `Owner`): `LOW`.
+- Orphaned key pairs, empty security groups, detached storage, stale images, idle elastic IPs: usually `LOW`.
+- Cost-only findings should not outrank security findings.
 
----
+## 4. False Positive Controls
 
-## 4. Encryption Patterns
+Suppress or downgrade these unless other evidence makes them risky:
+- Port 80 or 443 open on legitimate internet-facing web entry points.
+- Public HTTPS by itself.
+- Internal RFC1918 traffic between app tiers.
+- Default security groups with only self-referencing rules.
+- Broad outbound rules on non-sensitive workloads.
+- Public AMIs that appear intentionally published base images: use `NEEDS_REVIEW` if intent is unclear.
+- Cross-account access with strong conditions and clear intended scope: lower severity or use `NEEDS_REVIEW`.
 
-| Check | Baseline Severity | Notes |
-|-------|-------------------|-------|
-| Data-at-rest without encryption | MEDIUM | Raise to HIGH if resource name suggests sensitive data |
-| Data-at-rest with sensitive naming (`customer`, `payment`, `health`, `pii`, `secret`) without encryption | HIGH | |
-| Data-in-transit without TLS/SSL | HIGH | Check ELB listeners, RDS `force_ssl`, S3 bucket policy `aws:SecureTransport` |
-| SSE-S3 instead of SSE-KMS with CMK | LOW (informational) | Not a finding unless compliance requires CMK |
-| KMS key disabled or pending deletion | HIGH | Resources encrypted with this key become inaccessible or unrecoverable |
-| Unencrypted backups/snapshots | MEDIUM | Raise if source data is production/sensitive |
-| EBS default encryption disabled (account-level) | MEDIUM | New volumes created without explicit encryption |
+## 5. Dependency Boundaries
 
----
+- Dependency context exists to validate attack paths, explain blast radius, and prioritize remediation.
+- Dependency context must not become a separate audit of that service.
+- Only reference dependency misconfigurations when they are necessary to explain a primary-service finding or chain.
+- If dependency context is incomplete, do not extend the chain beyond what the evidence supports.
 
-## 5. Logging & Monitoring Patterns
+### Typical Dependency Use
+- EC2: IAM, S3, Lambda, Secrets Manager, SSM, VPC
+- S3: IAM, CloudTrail, EC2, Lambda
+- IAM: EC2, S3, Lambda, Secrets Manager, STS
+- VPC: EC2, IAM, RDS, ELB
+- RDS: EC2, VPC, IAM, KMS, Secrets Manager
+- EBS: EC2, IAM, KMS
+- AMI: EC2, IAM, Auto Scaling
+- ELB: EC2, ACM, WAF, S3, IAM
 
-| Check | Baseline Severity | Notes |
-|-------|-------------------|-------|
-| VPC Flow Logs disabled | HIGH | Non-negotiable for production VPCs |
-| S3 access logging disabled | MEDIUM | Raise to HIGH on public or sensitive buckets |
-| ELB access logging disabled | HIGH | Required for internet-facing load balancers |
-| RDS log exports disabled | MEDIUM | Raise to HIGH on production databases |
-| CloudTrail S3 data events not enabled | MEDIUM | Raise if S3 is a confirmed attack path target |
-| EC2 detailed monitoring disabled on production | LOW–MEDIUM | Based on workload criticality |
-| Any logging disabled + other security findings present | Compound | Mention in narrative: "attacks could go undetected" |
+## 6. Attack Path Standards
 
----
+- Minimum two confirmed hops per formal attack path.
+- Maximum one unexplained inferred hop.
+- One confirmed hop plus multiple inferred hops is too weak: keep it as a normal finding.
+- `CONFIRMED` means the scan directly proves the hop.
+- `INFERRED` means the hop is plausible from evidence but not fully proven; explain what would confirm it.
+- Formal paths must use real resources from the scan and end in a realistic attacker outcome such as code execution, credential theft, privilege escalation, lateral movement, or data access.
 
-## 6. Least Privilege & Wildcard Patterns
+## 7. Remediation Prioritization
 
-| Check | Baseline Severity | Notes |
-|-------|-------------------|-------|
-| `Action: *` + `Resource: *` | CRITICAL | Effectively admin — unless on a documented break-glass role |
-| `Action: *` on specific resource | HIGH | Overprivileged but scoped |
-| `Resource: *` on sensitive actions (`iam:PassRole`, `kms:Decrypt`, `secretsmanager:GetSecretValue`, `sts:AssumeRole`, `ssm:GetParameter*`) | HIGH | Raise to CRITICAL if combined with compute creation rights |
-| `iam:PassRole` + compute creation (`ec2:RunInstances`, `lambda:CreateFunction`, `ecs:RunTask`, `glue:CreateJob`, `cloudformation:CreateStack`) | CRITICAL | Core privilege escalation mechanism |
-| `iam:CreatePolicyVersion` + `iam:SetDefaultPolicyVersion` | CRITICAL | Silent policy escalation |
-| Inline policies on users/roles | MEDIUM | Harder to audit; raise to HIGH if contains wildcards |
-
----
-
-## 7. Age & Staleness Patterns
-
-| Check | Threshold | Baseline Severity |
-|-------|-----------|-------------------|
-| Access key age | >90 days → HIGH, >180 days → CRITICAL | Long-lived keys are common leak material |
-| Access key never used | Recent → LOW, >90 days → MEDIUM, privileged + dormant → HIGH | Forgotten keys become invisible attack paths |
-| Console user last login | >90 days inactive + privileged → HIGH | Dormant admin = unmonitored entry point |
-| Stopped EC2 instance | >30 days → LOW (cost/hygiene) | |
-| Detached EBS volume | No recent attachment → LOW | Raise if unencrypted + contains data |
-| Snapshot without lifecycle | >365 days → LOW | Raise if public or unencrypted |
-| AMI age | >365 days → LOW | May contain unpatched vulnerabilities |
-| SSL/TLS certificate expiry | <30 days → MEDIUM | |
-| Stale VPC peering with active routes | Assess actual reachability | Raise to HIGH if routes cover sensitive subnets |
-
----
-
-## 8. Cross-Account Access Patterns
-
-| Check | Baseline Severity | Notes |
-|-------|-------------------|-------|
-| Trust policy allows external account without conditions | HIGH | Raise to CRITICAL if role is admin-equivalent |
-| Trust policy with `Principal: *` (any AWS account) | CRITICAL | Any account worldwide can assume the role |
-| Bucket policy grants to external account | HIGH | Assess scope: `s3:GetObject` vs `s3:*` |
-| Snapshot/AMI shared to external account | HIGH | Data exfiltration risk |
-| VPC peering to external account | MEDIUM | Raise based on reachable subnet sensitivity |
-| Cross-account without ExternalId | MEDIUM | Confused deputy risk |
-| Use `NEEDS_REVIEW` when cross-account trust appears intentional but constraints can't be fully validated from scan | | |
-
----
-
-## 9. Unused Resource Patterns
-
-| Check | Category | Baseline Severity |
-|-------|----------|-------------------|
-| Orphaned key pair (no active instance) | `resource_hygiene` | LOW |
-| Idle Elastic IP (no association) | `cost` | LOW |
-| Detached EBS volume | `cost` / `resource_hygiene` | LOW |
-| Snapshot not linked to active workload | `resource_hygiene` | LOW |
-| AMI not referenced by instances/ASGs/launch templates | `resource_hygiene` | LOW |
-| Unused IGW (not attached or no subnet routes) | `resource_hygiene` | LOW |
-| Unused NAT gateway (no route references) | `cost` | MEDIUM (expensive) |
-| Empty security group (no instances attached) | `resource_hygiene` | LOW |
-| **Exception**: Unused resource with public exposure (public snapshot nobody uses) → escalate severity | | |
-
----
-
-## 10. Tagging Hygiene
-
-| Check | Baseline Severity | Notes |
-|-------|-------------------|-------|
-| Missing `Name`, `Environment`, or `Owner` tag | LOW (`resource_hygiene`) | |
-| Missing `Environment` tag | Affects severity classification | Cannot determine prod vs dev — note in findings |
-| `Environment: production` with security issues | Raise severity one level | |
-
-### Production Indicator Tags
-These tag values signal production workloads — apply severity raise:
-`prod`, `production`, `live`, `payment`, `api`, `db`, `auth`, `customer`, `critical`, `pci`, `pii`
-
----
-
-## 11. False Positive Controls
-
-Suppress or downgrade these unless combined with other findings:
-
-| Pattern | Action | Rationale |
-|---------|--------|-----------|
-| Port 80/443 open on internet-facing ALB/NLB | Not a finding by itself | Expected for web traffic |
-| Public web server on 443 serving legitimate app | Not a finding by itself | Expected architecture |
-| Outbound all-traffic on non-sensitive instances | LOW at most | Default AWS behavior |
-| Default SG with only self-referencing rules | Not a finding | AWS default, no exposure |
-| Public AMI intentionally published as base image | `NEEDS_REVIEW` | Verify intent before flagging |
-| Internal RFC1918 ranges in SG rules | Expected | App-to-DB communication |
-| SSE-S3 encryption (vs SSE-KMS) | LOW informational only | Unless compliance mandates CMK |
-| Cross-account trust with proper ExternalId + conditions | Lower severity | Properly constrained |
-
----
-
-## 12. Defense in Depth
-
-When a resource is protected by **only one layer**, note it in the narrative:
-
-| Single-layer pattern | Better defense |
-|---------------------|----------------|
-| S3 bucket relies only on ACLs (no bucket policy, no public access block) | Add bucket policy + account-level public access block |
-| EC2 relies only on SGs (no NACLs, no VPC flow logs) | Add NACLs for subnet-level control + enable flow logs |
-| IAM user with MFA but no access key rotation | Add key rotation policy |
-| RDS with SG restriction but `PubliclyAccessible: true` | Set `PubliclyAccessible: false` + private subnet |
-
----
-
-## 13. Dependency Context Boundaries
-
-Dependency context supports: chain validation, blast radius explanation, remediation prioritization.
-
-Dependency context must **never**: become a standalone audit, generate unrelated findings, or be treated as complete scan data for that service.
-
-**Exception**: Reference a dependency misconfiguration if directly required to explain the primary-service attack path chain.
-
-### Service Dependency Map
-
-| Primary Service | Useful Dependency Context |
-|----------------|--------------------------|
-| EC2 | IAM (instance roles, policies), S3 (exfil targets), Lambda (invokable functions), Secrets Manager, SSM |
-| S3 | IAM (who can access buckets), CloudTrail (data event logging), EC2/Lambda (compute accessing S3) |
-| IAM | EC2 (which roles are on public instances), S3 (do target buckets exist), Lambda, Secrets Manager, STS |
-| VPC | EC2 (workload sensitivity), IAM (endpoint policies) |
-| RDS | EC2/VPC (network exposure), IAM (authentication), KMS (encryption keys) |
-| EBS | EC2 (which instances use volumes), IAM (snapshot sharing), KMS (encryption keys) |
-| AMI | EC2 (which instances use AMIs), IAM (launch permissions) |
-| ELB | EC2 (target instances), ACM (certificates), S3 (access log bucket) |
-
----
-
-## 14. Attack Path Evidence Standards
-
-These thresholds apply universally. Service skill files must NOT restate them.
-
-| Rule | Requirement |
-|------|-------------|
-| Minimum confirmed hops | 2 per formal attack path |
-| Maximum unexplained inferred hops | 1 per path |
-| 1 confirmed + 3 inferred | Too weak — keep as normal findings |
-| `CONFIRMED` | Scan directly proves the hop (SG rule, public IP, attached role, policy statement) |
-| `INFERRED` | Strongly suggested but not fully proven. Must explain: why inferred + what data would confirm |
-| Insufficient evidence | Keep as finding with downstream risk mentioned in `impact` or `narrative` — do NOT elevate to `attack_paths[]` |
-
-### Remediation Prioritization
-When breaking attack chains, prioritize in this order:
-1. **Break the entry point** (remove public exposure, restrict SG)
-2. **Remove the key pivot** (enforce IMDSv2, scope IAM role)
-3. **Reduce blast radius** (encrypt data, enable logging, add monitoring)
+Break chains in this order:
+1. Remove the entry point.
+2. Remove the key pivot.
+3. Reduce blast radius.
+4. Improve logging and monitoring.
+5. Clean up hygiene or cost issues.

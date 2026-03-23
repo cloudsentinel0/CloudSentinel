@@ -1,0 +1,1098 @@
+{
+  "service": "vpc",
+  "source": "prowler",
+  "extraction_note": "Static metadata extracted from Prowler (Apache 2.0). No runtime dependency.",
+  "check_count": 11,
+  "checks": [
+    {
+      "id": "vpc_endpoint_connections_trust_boundaries",
+      "title": "VPC endpoint policy allows access only from trusted AWS accounts",
+      "severity": "high",
+      "resource_type": "AwsEc2VpcEndpointService",
+      "category": "access_control",
+      "description": "**VPC endpoint policies** are assessed for restriction to configured **trusted AWS accounts**. If `Principal` values (including `*`) or account ARNs permit non-trusted principals, or conditions aren't sufficiently restrictive, the endpoint is identified. *Endpoints without editable policies are excluded.*",
+      "risk": "Non-trusted principals using your endpoint can access AWS services as if from your VPC, weakening segmentation. This enables unauthorized reads/writes and data exfiltration from resources tied to the endpoint, harming **confidentiality** and **integrity**, and potentially increasing **costs**.",
+      "remediation": {
+        "cli": "aws ec2 modify-vpc-endpoint --vpc-endpoint-id <example_resource_id> --policy-document '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"*\",\"Resource\":\"*\",\"Condition\":{\"StringEquals\":{\"aws:PrincipalAccount\":[\"<TRUSTED_ACCOUNT_ID_1>\",\"<TRUSTED_ACCOUNT_ID_2>\"]}}}]}'",
+        "console_steps": "1. Open the AWS Console and go to VPC > Endpoints\n2. Select the endpoint and choose Actions > Manage policy\n3. Select Custom and paste this minimal policy, replacing with your trusted account IDs:\n   ```json\n   {\n     \"Version\": \"2012-10-17\",\n     \"Statement\": [\n       {\n         \"Effect\": \"Allow\",\n         \"Principal\": \"*\",\n         \"Action\": \"*\",\n         \"Resource\": \"*\",\n         \"Condition\": {\n           \"StringEquals\": {\n             \"aws:PrincipalAccount\": [\n               \"<TRUSTED_ACCOUNT_ID_1>\",\n               \"<TRUSTED_ACCOUNT_ID_2>\"\n             ]\n           }\n         }\n       }\n     ]\n   }\n   ```\n4. Click Save",
+        "terraform": "# Add this to the existing VPC endpoint resource to restrict access\nresource \"aws_vpc_endpoint\" \"<example_resource_name>\" {\n  # ...existing required arguments for the endpoint...\n\n  policy = jsonencode({\n    Version = \"2012-10-17\"\n    Statement = [{\n      Effect    = \"Allow\"\n      Principal = \"*\"\n      Action    = \"*\"\n      Resource  = \"*\"\n      Condition = {                       # CRITICAL: restrict by trusted accounts\n        StringEquals = {\n          \"aws:PrincipalAccount\" = [      # CRITICAL: only these accounts can use the endpoint\n            \"<TRUSTED_ACCOUNT_ID_1>\",\n            \"<TRUSTED_ACCOUNT_ID_2>\"\n          ]\n        }\n      }\n    }]\n  })\n}",
+        "cloudformation": "# CloudFormation: restrict VPC endpoint access to trusted accounts only\nResources:\n  <example_resource_name>:\n    Type: AWS::EC2::VPCEndpoint\n    Properties:\n      VpcId: <example_resource_id>\n      ServiceName: com.amazonaws.<region>.<service>\n      PolicyDocument:\n        Version: '2012-10-17'\n        Statement:\n          - Effect: Allow\n            Principal: \"*\"\n            Action: \"*\"\n            Resource: \"*\"\n            Condition:                  # CRITICAL: restrict by trusted accounts\n              StringEquals:             # CRITICAL: only allow specified accounts\n                \"aws:PrincipalAccount\":   # CRITICAL: limits usage to these accounts\n                  - \"<TRUSTED_ACCOUNT_ID_1>\"\n                  - \"<TRUSTED_ACCOUNT_ID_2>\""
+      },
+      "recommendation": "Apply **least privilege**: restrict endpoint policies to your account and an explicit allowlist of **trusted accounts**. Avoid `*` principals unless coupled with strict conditions. Prevent transitive trust across network links, and use resource policies and monitoring as **defense in depth** to limit endpoint use.",
+      "reference_url": "https://hub.prowler.com/check/vpc_endpoint_connections_trust_boundaries",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "rr_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "po_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ov_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ra_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ae_1"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access"
+      ],
+      "prowler_categories": [
+        "trust-boundaries",
+        "identity-access"
+      ]
+    },
+    {
+      "id": "vpc_endpoint_services_allowed_principals_trust_boundaries",
+      "title": "VPC endpoint service allows only trusted principals or none",
+      "severity": "high",
+      "resource_type": "AwsEc2VpcEndpointService",
+      "category": "network_exposure",
+      "description": "**VPC endpoint services** are assessed for their **allowed principals**, comparing each to a configured set of trusted accounts and identifying any **untrusted principals** or a wildcard `*` present in the allowlist.",
+      "risk": "Untrusted or wildcard principals can create PrivateLink connections to your service, eroding segmentation. This enables unauthorized data access (**confidentiality**), abuse of internal APIs (**integrity**), and excess load on backends (**availability**).",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. Open the AWS VPC console and go to Endpoint services\n2. Select the endpoint service (<example_resource_id>)\n3. Open the Allowed principals tab and click Edit allowed principals\n4. Remove all entries that are not trusted, including any wildcard (*)\n5. Optionally leave the list empty (no principals) or keep only trusted account IDs/ARNs\n6. Save changes",
+        "terraform": "# Allow only a trusted principal (delete this resource to allow none)\nresource \"aws_vpc_endpoint_service_allowed_principal\" \"<example_resource_name>\" {\n  service_id    = \"<example_resource_id>\"\n  principal_arn = \"arn:aws:iam::<TRUSTED_ACCOUNT_ID>:root\"  # CRITICAL: only this trusted account can create endpoints\n}",
+        "cloudformation": "# Allow only a trusted principal (or attach none to allow no principals)\nResources:\n  <example_resource_name>:\n    Type: AWS::EC2::VPCEndpointServicePermissions\n    Properties:\n      ServiceId: <example_resource_id>\n      AllowedPrincipals:\n        - arn:aws:iam::<TRUSTED_ACCOUNT_ID>:root  # CRITICAL: restricts access to only this trusted account"
+      },
+      "recommendation": "Apply **least privilege**: restrict **allowed principals** to vetted account IDs and avoid `*`. Maintain a central trust registry, enforce **separation of duties** with approval workflows, and review entries regularly. Use **defense in depth** with strong service authentication and continuous configuration monitoring.",
+      "reference_url": "https://hub.prowler.com/check/vpc_endpoint_services_allowed_principals_trust_boundaries",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access"
+      ],
+      "prowler_categories": [
+        "trust-boundaries"
+      ]
+    },
+    {
+      "id": "vpc_subnet_no_public_ip_by_default",
+      "title": "VPC subnet does not assign public IP addresses by default",
+      "severity": "high",
+      "resource_type": "AwsEc2Subnet",
+      "category": "network_exposure",
+      "description": "**VPC subnets** where `MapPublicIpOnLaunch` is `true` automatically assign a public IPv4 address to instances at launch.\n\nThis identifies subnets configured for default public IP assignment.",
+      "risk": "**Internet-exposed instances** become reachable by default, enabling port scans, SSH/RDP brute force, and exploit attempts. Successful access can lead to data exfiltration (**confidentiality**), unauthorized changes (**integrity**), and outages (**availability**) through abuse or DDoS.",
+      "remediation": {
+        "cli": "aws ec2 modify-subnet-attribute --subnet-id <SUBNET_ID> --no-map-public-ip-on-launch",
+        "console_steps": "1. Open the AWS Console and go to VPC\n2. Click Subnets and select the target subnet\n3. Choose Actions > Edit subnet settings (or Modify auto-assign IP settings)\n4. Uncheck Enable auto-assign public IPv4 address\n5. Save changes",
+        "terraform": "# Subnet with public IP auto-assign disabled\nresource \"aws_subnet\" \"example\" {\n  vpc_id     = \"<example_resource_id>\"\n  cidr_block = \"10.0.1.0/24\"\n\n  map_public_ip_on_launch = false  # Critical: prevents assigning public IPs by default\n}",
+        "cloudformation": "# CloudFormation: Subnet with public IP auto-assign disabled\nResources:\n  ExampleSubnet:\n    Type: AWS::EC2::Subnet\n    Properties:\n      VpcId: <example_resource_id>\n      CidrBlock: 10.0.1.0/24\n      MapPublicIpOnLaunch: false  # Critical: disables automatic public IPv4 assignment on instance launch"
+      },
+      "recommendation": "Disable subnet auto-assign to enforce **least-privilege exposure**. Place workloads in **private subnets**, use controlled egress (NAT or private endpoints), and prefer bastions or SSM for administration.\n\n*When public access is necessary*, assign IPs explicitly and restrict with tight security groups and routes for **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/vpc_subnet_no_public_ip_by_default",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/config/latest/developerguide/subnet-auto-assign-public-ip-disabled.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "EC2.15"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_6_6"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "vpc_different_regions",
+      "title": "VPCs are present in more than one region",
+      "severity": "medium",
+      "resource_type": "AwsEc2Vpc",
+      "category": "network_exposure",
+      "description": "Non-default **VPCs** are evaluated across the account to determine whether they exist in **more than one region**. The result reflects if your custom network topology is regionally distributed or concentrated in a single region.",
+      "risk": "Single-region VPC deployment weakens **availability** and **resilience**. A regional outage, service disruption, or network control misconfiguration can cause broad downtime, hinder recovery, and increase the **blast radius** of incidents impacting business continuity.",
+      "remediation": {
+        "cli": "aws ec2 create-vpc --region <OTHER_REGION> --cidr-block <CIDR_BLOCK>",
+        "console_steps": "1. Open the AWS Console and go to VPC\n2. In the Region selector (top right), choose a different region than your existing non-default VPCs\n3. Click Create VPC > VPC only\n4. Enter an IPv4 CIDR block (e.g., 10.0.0.0/16)\n5. Click Create VPC\n6. Verify a non-default VPC now exists in this second region",
+        "terraform": "provider \"aws\" {\n  alias  = \"other\"\n  region = \"<OTHER_REGION>\" # Critical: ensures the VPC is created in a second region\n}\n\nresource \"aws_vpc\" \"<example_resource_name>\" {\n  provider   = aws.other\n  cidr_block = \"10.0.0.0/16\" # Critical: creates a non-default VPC in that region\n}",
+        "cloudformation": "# Deploy this stack in a second AWS region to pass the check\nResources:\n  <example_resource_name>:\n    Type: AWS::EC2::VPC\n    Properties:\n      CidrBlock: 10.0.0.0/16  # Critical: creates a non-default VPC in this region"
+      },
+      "recommendation": "Adopt a **multi-region network design**:\n- Create VPCs in at least two regions for critical workloads\n- Replicate routing, security controls, and endpoints consistently\n- Apply **fault tolerance** and **defense in depth** with data replication and resilient DNS/failover to avoid single-region dependency",
+      "reference_url": "https://hub.prowler.com/check/vpc_different_regions",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-example-private-subnets-nat.html",
+        "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "vpc_endpoint_for_ec2_enabled",
+      "title": "VPC has an Amazon EC2 VPC endpoint",
+      "severity": "medium",
+      "resource_type": "AwsEc2VpcEndpointService",
+      "category": "network_exposure",
+      "description": "**Amazon VPCs** are evaluated for an **interface VPC endpoint** to the **Amazon EC2 API** (`ec2`). Its presence indicates private EC2 API connectivity over **AWS PrivateLink** within the VPC.",
+      "risk": "Without a private EC2 endpoint, EC2 API traffic exits via IGW/NAT. This expands exposure to network path threats (e.g., DNS hijack, MITM) and weakens egress isolation. It also adds an internet egress dependency for API access, reducing availability if NAT/edge paths fail.",
+      "remediation": {
+        "cli": "aws ec2 create-vpc-endpoint --vpc-id <VPC_ID> --service-name com.amazonaws.<REGION>.ec2 --vpc-endpoint-type Interface --subnet-ids <SUBNET_ID>",
+        "console_steps": "1. In the AWS console, go to VPC > Endpoints\n2. Click Create endpoint\n3. For Service category, choose AWS services and select Service name com.amazonaws.<region>.ec2\n4. Select your VPC and at least one subnet\n5. Click Create endpoint",
+        "terraform": "# Create an EC2 interface VPC endpoint\nresource \"aws_vpc_endpoint\" \"<example_resource_name>\" {\n  vpc_id            = \"<example_resource_id>\"           # CRITICAL: target VPC\n  service_name      = \"com.amazonaws.<region>.ec2\"      # CRITICAL: EC2 interface endpoint service\n  vpc_endpoint_type = \"Interface\"                       # CRITICAL: interface endpoint\n  subnet_ids        = [\"<example_resource_id>\"]         # CRITICAL: subnet(s) for endpoint ENIs\n}",
+        "cloudformation": "# CloudFormation: create an EC2 interface VPC endpoint in the VPC\nResources:\n  VPCEndpoint:\n    Type: AWS::EC2::VPCEndpoint\n    Properties:\n      VpcId: \"<example_resource_id>\"                 # CRITICAL: target VPC for the endpoint\n      ServiceName: !Sub \"com.amazonaws.${AWS::Region}.ec2\"  # CRITICAL: EC2 interface endpoint service\n      VpcEndpointType: Interface                      # CRITICAL: create an interface endpoint\n      SubnetIds:                                      # CRITICAL: subnets to place the endpoint ENIs\n        - \"<example_resource_id>\""
+      },
+      "recommendation": "Use an **interface VPC endpoint** for the EC2 service in each VPC that requires EC2 API access.\n- Enable **private DNS** to keep calls on the AWS network\n- Apply restrictive endpoint policies (least privilege)\n- Reduce reliance on public egress and layer controls for **defense in depth**",
+      "reference_url": "https://hub.prowler.com/check/vpc_endpoint_for_ec2_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/config/latest/developerguide/service-vpc-endpoint-enabled.html",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/ec2-controls.html#ec2-10",
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/interface-vpc-endpoints.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "EC2.10"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.38"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.42"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.42"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.1.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.40"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.4.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.38"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.38"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ra_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ae_1"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed",
+        "trust-boundaries"
+      ]
+    },
+    {
+      "id": "vpc_endpoint_multi_az_enabled",
+      "title": "Amazon VPC interface endpoint has subnets in multiple Availability Zones",
+      "severity": "medium",
+      "resource_type": "AwsEc2VpcEndpointService",
+      "category": "compliance",
+      "description": "**VPC interface endpoints** are evaluated for whether their endpoint network interfaces are placed in **multiple subnets**, which implies distribution across different **Availability Zones**. Endpoints present in only one subnet are identified.",
+      "risk": "A **single-subnet endpoint** creates a **single-AZ dependency**. An AZ outage or routing issue can cut access to the service, reducing **availability**. Workloads may revert to **public endpoints**, exposing traffic to the Internet and risking **confidentiality** through interception or tampering.",
+      "remediation": {
+        "cli": "aws ec2 modify-vpc-endpoint --vpc-endpoint-id <example_resource_id> --add-subnet-ids <example_subnet_id_2>",
+        "console_steps": "1. Open the AWS VPC console and go to Endpoints\n2. Select the interface endpoint\n3. Click Actions > Manage subnets\n4. Select an additional subnet in a different Availability Zone\n5. Click Modify subnets to save",
+        "terraform": "resource \"aws_vpc_endpoint\" \"<example_resource_name>\" {\n  vpc_id            = \"<example_resource_id>\"\n  service_name      = \"com.amazonaws.<region>.<service>\"\n  vpc_endpoint_type = \"Interface\"\n\n  subnet_ids = [\n    \"<example_subnet_id_1>\",\n    \"<example_subnet_id_2>\"  # CRITICAL: add a second subnet (ideally in a different AZ) to satisfy multi-AZ\n  ]\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::EC2::VPCEndpoint\n    Properties:\n      VpcEndpointType: Interface\n      VpcId: <example_resource_id>\n      ServiceName: com.amazonaws.<region>.<service>\n      SubnetIds:  # CRITICAL: include at least two subnets (preferably in different AZs) to pass the check\n        - <example_subnet_id_1>\n        - <example_subnet_id_2>"
+      },
+      "recommendation": "Place interface endpoints in **multiple subnets across distinct AZs** to remove single-AZ reliance. Prefer zone-local routing so clients use the nearest endpoint, and combine with **private DNS** and restrictive **security groups** to limit exposure-supporting **defense in depth** and resilient connectivity.",
+      "reference_url": "https://hub.prowler.com/check/vpc_endpoint_multi_az_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html",
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/interface-vpc-endpoints.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "vpc_flow_logs_enabled",
+      "title": "VPC flow logs are enabled",
+      "severity": "medium",
+      "resource_type": "AwsEc2Vpc",
+      "category": "logging_monitoring",
+      "description": "**AWS VPCs** have **Flow Logs** configured to capture IP traffic for their network interfaces and deliver records to a logging destination.\n\nVPCs lacking an active flow log configuration are highlighted.",
+      "risk": "Without flow logs, network activity is opaque, hindering detection and investigation of malicious traffic. Attackers can probe, exfiltrate, or move laterally unnoticed, impacting **confidentiality** and **integrity**; outages and misconfigurations are harder to diagnose, reducing **availability**.",
+      "remediation": {
+        "cli": "aws ec2 create-flow-logs --resource-type VPC --resource-ids <VPC_ID> --traffic-type ALL --log-destination-type s3 --log-destination arn:aws:s3:::<S3_BUCKET_NAME>",
+        "console_steps": "1. In the AWS Console, go to VPC > Your VPCs\n2. Select the target VPC\n3. Open the Flow logs tab and click Create flow log\n4. Set Traffic type to All\n5. Set Destination to S3 and enter Bucket ARN: arn:aws:s3:::<example_resource_name>\n6. Click Create flow log",
+        "terraform": "# Enable VPC Flow Logs to S3 for an existing VPC\nresource \"aws_flow_log\" \"vpc\" {\n  vpc_id               = \"<example_resource_id>\"                 # Critical: target the VPC to enable flow logs\n  traffic_type         = \"ALL\"                                   # Critical: log all traffic\n  log_destination_type = \"s3\"                                    # Critical: send logs to S3 (no IAM role needed)\n  log_destination      = \"arn:aws:s3:::<example_resource_name>\"  # Critical: S3 bucket ARN\n}",
+        "cloudformation": "# CloudFormation: Enable VPC Flow Logs to S3 for an existing VPC\nResources:\n  FlowLog:\n    Type: AWS::EC2::FlowLog\n    Properties:\n      ResourceId: <example_resource_id>         # Critical: target the VPC ID\n      ResourceType: VPC                         # Critical: enable flow logs at VPC level\n      TrafficType: ALL                          # Critical: log all traffic\n      LogDestinationType: s3                    # Critical: send logs to S3 (no IAM role needed)\n      LogDestination: arn:aws:s3:::<example_resource_name>  # Critical: S3 bucket ARN"
+      },
+      "recommendation": "Enable **VPC Flow Logs** for all VPCs to provide baseline telemetry.\nPrefer capturing at least `REJECT` and, for sensitive networks, `ALL`. Send logs to a centralized, access-controlled destination with retention. Apply **least privilege** to writers/readers and integrate with monitoring for **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/vpc_flow_logs_enabled",
+      "aws_doc_urls": [
+        "http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/VPC/vpc-flow-logs-enabled.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS",
+        "NIST-800-53",
+        "NIST-CSF",
+        "PCI-DSS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "3.9"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "3.7"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "EC2.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1.e"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "4.1.f"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.1.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.2.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.3.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.4.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.5.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.6.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.7.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.2.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.1.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.6.3.39"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "5.3.4.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.2.1.34"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_2"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_3"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_d"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_6_ii"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_2_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_e"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_8_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_5_1_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ia_3_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ma_4_1_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_31"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_17"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_7_8"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "po_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ae_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "cm_1"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_25"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_30"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.15"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.16"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.23"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging",
+        "forensics-ready"
+      ]
+    },
+    {
+      "id": "vpc_peering_routing_tables_with_least_privilege",
+      "title": "VPC peering connection route tables do not include 0.0.0.0/0 or entire requester/accepter VPC CIDR routes",
+      "severity": "medium",
+      "resource_type": "AwsEc2VpcPeeringConnection",
+      "category": "network_exposure",
+      "description": "**AWS VPC peering** route tables are assessed for **least-privilege routing**. Routes that target `0.0.0.0/0` or an entire peer VPC CIDR are considered overly broad; only specific subnets or narrower prefixes should be advertised across the peering link.",
+      "risk": "Broad peering routes expand cross-VPC reachability, enabling lateral movement and unauthorized discovery, harming **confidentiality** and **integrity**. Using `0.0.0.0/0` or full-CIDR paths also increases misrouting with overlapping ranges, reducing network **availability**.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In AWS Console, go to VPC > Route tables\n2. Select the route table(s) used to reach the peered VPC and click Routes > Edit routes\n3. Delete any route to 0.0.0.0/0 or to the entire requester/accepter VPC CIDR that targets the VPC peering connection\n4. Add route(s) only to required subnet CIDR(s) in the peer VPC, targeting the same VPC peering connection\n5. Save changes and repeat in the peer VPC's route table(s)",
+        "terraform": "# Restrict VPC peering route to a specific subnet (least privilege)\nresource \"aws_route\" \"peering_specific\" {\n  route_table_id             = \"<example_resource_id>\"\n  destination_cidr_block     = \"10.0.1.0/24\"  # CRITICAL: specific subnet, not 0.0.0.0/0 or full VPC CIDR\n  vpc_peering_connection_id  = \"<example_resource_id>\"\n}",
+        "cloudformation": "# CloudFormation: restrict VPC peering route to a specific subnet (least privilege)\nResources:\n  PeeringSpecificRoute:\n    Type: AWS::EC2::Route\n    Properties:\n      RouteTableId: <example_resource_id>\n      DestinationCidrBlock: 10.0.1.0/24  # CRITICAL: use a specific subnet, not 0.0.0.0/0 or full VPC CIDR\n      VpcPeeringConnectionId: <example_resource_id>"
+      },
+      "recommendation": "Enforce **least privilege** in peering: advertise only required subnets or more specific prefixes; avoid `0.0.0.0/0` and whole VPC ranges. Keep routes symmetric on both sides, and layer **defense in depth** with security groups and NACLs. *If broad connectivity is required*, prefer segmented designs or a transit gateway.",
+      "reference_url": "https://hub.prowler.com/check/vpc_peering_routing_tables_with_least_privilege",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement-staging/knowledge-base/aws/VPC/vpc-peering-access.html#",
+        "https://docs.aws.amazon.com/vpc/latest/peering/peering-configurations-partial-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "5.5"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "5.5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ra_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [
+        "Lateral Movement"
+      ],
+      "prowler_categories": [
+        "trust-boundaries"
+      ]
+    },
+    {
+      "id": "vpc_subnet_different_az",
+      "title": "VPC has subnets in more than one Availability Zone",
+      "severity": "medium",
+      "resource_type": "AwsEc2Subnet",
+      "category": "network_exposure",
+      "description": "**VPCs** are assessed for **subnets spread across multiple Availability Zones**. The finding distinguishes VPCs with subnets confined to a single AZ or with no subnets from those with subnets in `2+` distinct AZs.",
+      "risk": "Single-AZ subnet layouts create a **single point of failure**, leading to **service downtime** during AZ outages, maintenance, or capacity events. Lack of **zonal redundancy** constrains load balancing and egress design, reduces **fault isolation**, and undermines availability and recovery objectives.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS Console, go to VPC > Subnets\n2. Click Create subnet\n3. Select the target VPC (<example_resource_id>)\n4. Add two subnets with non-overlapping CIDRs in different Availability Zones (e.g., <example_az_1> and <example_az_2>)\n5. Click Create subnet to save\n",
+        "terraform": "# Create two subnets in different AZs so the VPC spans multiple Availability Zones\nresource \"aws_subnet\" \"subnet_a\" {\n  vpc_id            = \"<example_resource_id>\"\n  cidr_block        = \"10.0.0.0/24\"\n  availability_zone = \"<example_az_1>\" # Critical: first AZ\n}\n\nresource \"aws_subnet\" \"subnet_b\" {\n  vpc_id            = \"<example_resource_id>\"\n  cidr_block        = \"10.0.1.0/24\"\n  availability_zone = \"<example_az_2>\" # Critical: second AZ; ensures subnets in more than one AZ\n}",
+        "cloudformation": "# CloudFormation: create two subnets in different AZs to ensure VPC spans multiple AZs\nResources:\n  SubnetA:\n    Type: AWS::EC2::Subnet\n    Properties:\n      VpcId: <example_resource_id>\n      CidrBlock: 10.0.0.0/24\n      AvailabilityZone: <example_az_1>  # Critical: place subnet in AZ1 to start AZ diversity\n  SubnetB:\n    Type: AWS::EC2::Subnet\n    Properties:\n      VpcId: <example_resource_id>\n      CidrBlock: 10.0.1.0/24\n      AvailabilityZone: <example_az_2>  # Critical: second AZ ensures VPC has subnets in more than one AZ"
+      },
+      "recommendation": "Distribute subnets across `2+` **Availability Zones** and deploy workloads in separate AZs for **high availability**. Mirror network tiers per AZ, align routing and egress per AZ, and enforce multi-AZ layouts with IaC and policy guardrails. *Regularly test failover* to validate resilience.",
+      "reference_url": "https://hub.prowler.com/check/vpc_subnet_different_az",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/pdfs/whitepapers/latest/building-scalable-secure-multi-vpc-network-infrastructure/building-scalable-secure-multi-vpc-network-infrastructure.pdf",
+        "https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "vpc_subnet_separate_private_public",
+      "title": "VPC has both public and private subnets",
+      "severity": "medium",
+      "resource_type": "AwsEc2Subnet",
+      "category": "network_exposure",
+      "description": "**Amazon VPCs** are assessed for network segmentation: at least one **public subnet** (internet-routable) and one **private subnet** (non-internet-routable).\n\nIt flags VPCs with no subnets, only public subnets, or only private subnets.",
+      "risk": "Missing subnet separation erodes **segmentation**.\n- Only public: workloads face Internet exposure, enabling scanning, brute force, and lateral movement, threatening **confidentiality** and **integrity**.\n- Only private: no controlled egress can break patching and dependencies, impacting **availability**.\n- No subnets: misconfiguration leaves services unreachable.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS console, go to VPC > Your VPCs and select the failing VPC\n2. Attach an Internet Gateway if none exists: Internet Gateways > Create > Attach to the VPC\n3. Create two subnets: Subnets > Create subnet\n   - Subnet A (public): CIDR e.g., 10.0.1.0/24\n   - Subnet B (private): CIDR e.g., 10.0.2.0/24\n4. Create a route table for public subnet: Route tables > Create\n   - Add route: 0.0.0.0/0 -> Internet Gateway (IGW)\n   - Associate this route table to Subnet A (public)\n5. Create a route table for private subnet: Route tables > Create\n   - Do not add a route to an Internet Gateway\n   - Associate this route table to Subnet B (private)\n6. Verify the VPC now has at least one subnet with an IGW route (public) and one without (private)",
+        "terraform": "# Terraform: add one public and one private subnet to a VPC\nresource \"aws_internet_gateway\" \"<example_resource_name>\" {\n  vpc_id = \"<example_resource_id>\"\n}\n\nresource \"aws_subnet\" \"public_<example_resource_name>\" {\n  vpc_id     = \"<example_resource_id>\"\n  cidr_block = \"10.0.1.0/24\"\n}\n\nresource \"aws_subnet\" \"private_<example_resource_name>\" {\n  vpc_id     = \"<example_resource_id>\"\n  cidr_block = \"10.0.2.0/24\"\n}\n\nresource \"aws_route_table\" \"public_<example_resource_name>\" {\n  vpc_id = \"<example_resource_id>\"\n  route {                         # CRITICAL: makes subnet public via IGW\n    cidr_block = \"0.0.0.0/0\"      # default route to Internet\n    gateway_id = aws_internet_gateway.<example_resource_name>.id\n  }\n}\n\nresource \"aws_route_table_association\" \"public_assoc_<example_resource_name>\" {\n  subnet_id      = aws_subnet.public_<example_resource_name>.id\n  route_table_id = aws_route_table.public_<example_resource_name>.id  # CRITICAL\n}\n\nresource \"aws_route_table\" \"private_<example_resource_name>\" {\n  vpc_id = \"<example_resource_id>\"  # CRITICAL: no IGW route keeps subnet private\n}\n\nresource \"aws_route_table_association\" \"private_assoc_<example_resource_name>\" {\n  subnet_id      = aws_subnet.private_<example_resource_name>.id\n  route_table_id = aws_route_table.private_<example_resource_name>.id  # CRITICAL\n}",
+        "cloudformation": "# CloudFormation: add one public and one private subnet to a VPC\nResources:\n  InternetGateway:\n    Type: AWS::EC2::InternetGateway\n\n  VPCGatewayAttachment:\n    Type: AWS::EC2::VPCGatewayAttachment\n    Properties:\n      VpcId: <example_resource_id>\n      InternetGatewayId: !Ref InternetGateway\n\n  PublicSubnet:\n    Type: AWS::EC2::Subnet\n    Properties:\n      VpcId: <example_resource_id>\n      CidrBlock: 10.0.1.0/24  # creates a subnet to be made public via route\n\n  PrivateSubnet:\n    Type: AWS::EC2::Subnet\n    Properties:\n      VpcId: <example_resource_id>\n      CidrBlock: 10.0.2.0/24  # creates a subnet that remains private (no IGW route)\n\n  PublicRouteTable:\n    Type: AWS::EC2::RouteTable\n    Properties:\n      VpcId: <example_resource_id>\n\n  PublicDefaultRoute:\n    Type: AWS::EC2::Route\n    DependsOn: VPCGatewayAttachment\n    Properties:\n      RouteTableId: !Ref PublicRouteTable\n      DestinationCidrBlock: 0.0.0.0/0  # CRITICAL: makes routes to the Internet\n      GatewayId: !Ref InternetGateway    # CRITICAL: via Internet Gateway\n\n  PublicAssociation:\n    Type: AWS::EC2::SubnetRouteTableAssociation\n    Properties:\n      SubnetId: !Ref PublicSubnet\n      RouteTableId: !Ref PublicRouteTable  # CRITICAL: marks this subnet as public\n\n  PrivateRouteTable:\n    Type: AWS::EC2::RouteTable\n    Properties:\n      VpcId: <example_resource_id>\n\n  PrivateAssociation:\n    Type: AWS::EC2::SubnetRouteTableAssociation\n    Properties:\n      SubnetId: !Ref PrivateSubnet\n      RouteTableId: !Ref PrivateRouteTable  # CRITICAL: no IGW route -> private subnet"
+      },
+      "recommendation": "Segment each VPC: put internet-facing endpoints in **public subnets** and internal workloads in **private subnets**. Restrict ingress/egress with tight route tables, NACLs, and security groups, minimizing `0.0.0.0/0`. Apply **least privilege** and **defense in depth**. Provide controlled outbound for private subnets via managed egress and use hardened admin access patterns.",
+      "reference_url": "https://hub.prowler.com/check/vpc_subnet_separate_private_public",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_6_6"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "trust-boundaries"
+      ]
+    },
+    {
+      "id": "vpc_vpn_connection_tunnels_up",
+      "title": "AWS Site-to-Site VPN connection has both tunnels up",
+      "severity": "medium",
+      "resource_type": "AwsEc2ClientVpnEndpoint",
+      "category": "network_exposure",
+      "description": "**AWS Site-to-Site VPN** connections have two IPsec tunnels. This evaluates tunnel status and detects when any tunnel is not `UP`, indicating whether both tunnels are concurrently available for high availability.",
+      "risk": "With only one active tunnel or none, the link loses redundancy, degrading **availability** and increasing the chance of outages, session drops, or route blackholing. Failover cannot occur, disrupting critical workloads and cross-environment operations.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS Console, go to VPC > Site-to-Site VPN connections and select the VPN connection with a tunnel DOWN\n2. Open the Tunnel details tab\n3. For each tunnel (1 and 2), choose Actions > Download configuration, select your device/vendor, and download the config\n4. On your customer gateway device, configure BOTH tunnels using the downloaded parameters (pre-shared key, IKE/IPsec settings, inside CIDR, and routing/BGP as applicable)\n5. If your device requires different parameters, in the AWS console choose Actions > Modify VPN tunnel options, select the tunnel outside IP, adjust only the necessary options (for example IKE version or pre-shared key), and Save\n6. Wait a few minutes and verify both tunnels show Status: UP under Tunnel details",
+        "terraform": "",
+        "cloudformation": ""
+      },
+      "recommendation": "Maintain both tunnels healthy and ready for failover:\n- Deploy redundant customer gateways and resilient routing\n- Monitor tunnel health with alerts\n- Periodically test failover and document runbooks\n\nApply **high availability** and **defense-in-depth** to avoid single points of failure.",
+      "reference_url": "https://hub.prowler.com/check/vpc_vpn_connection_tunnels_up",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/vpn/latest/s2svpn/modify-vpn-tunnel-options.html",
+        "https://docs.aws.amazon.com/config/latest/developerguide/vpc-vpn-2-tunnels-up.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "EC2.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.46"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.46"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.1.10"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.44"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.4.10"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.20"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.21"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.22"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    }
+  ]
+}

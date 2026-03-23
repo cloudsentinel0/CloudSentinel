@@ -216,7 +216,15 @@ def _run_scan_and_analyze(
     )
     resolved_provider = resolve_llm_provider(llm_provider)
     user_prompt = bundle["llm_request"]["user_prompt"]
-    system_prompt = bundle["llm_request"]["system_prompt"]
+
+    # Provider-specific contract selection:
+    # - Claude: CLAUDE.md passed explicitly via --system-prompt flag
+    # - Codex: AGENTS.md auto-loaded from cwd (no embedding needed)
+    system_prompt: str | None = None
+    if resolved_provider == "claude":
+        claude_md = PROJECT_ROOT / "CLAUDE.md"
+        if claude_md.exists():
+            system_prompt = claude_md.read_text(encoding="utf-8")
 
     # 4. Send to the selected provider
     progress(

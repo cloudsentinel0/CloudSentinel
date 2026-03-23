@@ -1,0 +1,3416 @@
+{
+  "service": "s3",
+  "source": "prowler",
+  "extraction_note": "Static metadata extracted from Prowler (Apache 2.0). No runtime dependency.",
+  "check_count": 21,
+  "checks": [
+    {
+      "id": "s3_access_point_public_access_block",
+      "title": "S3 access point has all Block Public Access settings enabled",
+      "severity": "critical",
+      "resource_type": "AwsS3AccessPoint",
+      "category": "network_exposure",
+      "description": "**Amazon S3 access points** have **Block Public Access** configured with all settings enabled: `block_public_acls`, `ignore_public_acls`, `block_public_policy`, and `restrict_public_buckets`.\n\nThe evaluation inspects each access point's public access block configuration.",
+      "risk": "Without block public access on an access point, ACLs or policies can expose objects publicly despite intended restrictions. This enables unauthorized reads (**confidentiality** loss), writes or deletions (**integrity/availability** impact), and supports bulk data exfiltration or destructive actions.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS console, go to S3 > Access points\n2. Select the noncompliant access point and click Delete access point\n3. Click Create access point, select the same bucket\n4. Ensure Block public access is enabled (all options On by default)\n5. Click Create access point",
+        "terraform": "# Terraform: S3 Access Point with all Block Public Access settings enabled\nresource \"aws_s3_access_point\" \"<example_resource_name>\" {\n  name   = \"<example_resource_name>\"\n  bucket = \"<example_bucket_name>\"\n\n  public_access_block_configuration {\n    block_public_acls       = true  # Critical: block public ACLs\n    ignore_public_acls      = true  # Critical: ignore any public ACLs\n    block_public_policy     = true  # Critical: block public policies\n    restrict_public_buckets = true  # Critical: restrict public buckets\n  }\n}",
+        "cloudformation": "# CloudFormation: S3 Access Point with all Block Public Access settings enabled\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::AccessPoint\n    Properties:\n      Bucket: <example_bucket_name>\n      PublicAccessBlockConfiguration:\n        BlockPublicAcls: true        # Critical: block public ACLs\n        IgnorePublicAcls: true       # Critical: ignore any public ACLs\n        BlockPublicPolicy: true      # Critical: block public policies\n        RestrictPublicBuckets: true  # Critical: restrict public buckets"
+      },
+      "recommendation": "Enable all access-point Block Public Access settings (`block_public_acls`, `ignore_public_acls`, `block_public_policy`, `restrict_public_buckets`).\n\nApply **least privilege**, prefer **VPC-only** access points, and layer account and bucket blocks for **defense in depth**. Regularly audit for public principals like `Principal: *`.",
+      "reference_url": "https://hub.prowler.com/check/s3_access_point_public_access_block",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/config/latest/developerguide/s3-access-point-public-access-blocks.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-points.html#access-points-policies",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html#s3-19"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.30"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.32"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.30"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.14"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.30"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.16"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_3"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "s3_bucket_policy_public_write_access",
+      "title": "S3 bucket policy does not allow public write access",
+      "severity": "critical",
+      "resource_type": "AwsS3Bucket",
+      "category": "network_exposure",
+      "description": "**Amazon S3 bucket policies** are evaluated for **public write permissions** (e.g., `s3:PutObject`, `s3:Delete*`, or `s3:*`). Account or bucket **Public Access Block** that restricts public buckets is considered when determining exposure.",
+      "risk": "Public write access lets anyone upload, overwrite, or delete objects, undermining **integrity** and **availability**. Attackers can plant malware, stage phishing content, poison data, or wipe buckets, causing outages and potential legal and cost impacts from storage abuse and content hosting.",
+      "remediation": {
+        "cli": "aws s3api put-public-access-block --bucket <BUCKET_NAME> --public-access-block-configuration RestrictPublicBuckets=true",
+        "console_steps": "1. Open the AWS S3 console and select the target bucket\n2. Go to the Permissions tab\n3. Under Block public access (bucket settings), click Edit\n4. Enable \"Block public and cross-account access to buckets and objects through any public bucket or access point policies\"\n5. Click Save changes",
+        "terraform": "# Enable bucket-level Public Access Block so public bucket policies (including write) are blocked\nresource \"aws_s3_bucket_public_access_block\" \"<example_resource_name>\" {\n  bucket                   = \"<example_resource_id>\"\n  restrict_public_buckets  = true  # Critical: prevents public access granted via bucket policies\n}",
+        "cloudformation": "# CloudFormation: Enable bucket-level Public Access Block to prevent public policies from granting write\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      PublicAccessBlockConfiguration:\n        RestrictPublicBuckets: true  # Critical: blocks public access granted by any public bucket policy"
+      },
+      "recommendation": "Restrict writes to trusted principals using **least privilege**; avoid `Principal: \"*\"`. Enable **Public Access Block** at account and bucket levels for defense in depth. Prefer IAM roles over broad bucket policies, require private access paths, and enable versioning to recover from unwanted changes.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_policy_public_write_access",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2.1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_2_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_4_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "mp_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_11"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_12"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_16"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_20"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_24_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_25"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_27"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_28"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_25"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1485"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1486"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access"
+      ],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "s3_bucket_public_access",
+      "title": "S3 bucket is not publicly accessible to Everyone or Authenticated Users",
+      "severity": "critical",
+      "resource_type": "AwsS3Bucket",
+      "category": "network_exposure",
+      "description": "**Amazon S3 buckets** are evaluated for **public access** via ACLs and bucket policies. The check identifies account or bucket `PublicAccessBlock` protections (`IgnorePublicAcls`, `RestrictPublicBuckets`) and flags buckets granting group access to `AllUsers` or `AuthenticatedUsers`, or with a public bucket policy.",
+      "risk": "Publicly accessible buckets jeopardize **confidentiality** through unauthenticated reads, **integrity** through write or ACL changes, and **availability** via object deletion or overwrite. Attackers can mass-exfiltrate data, host malware, or pivot after discovering secrets stored in objects.",
+      "remediation": {
+        "cli": "aws s3api put-public-access-block --bucket <bucket_name> --public-access-block-configuration IgnorePublicAcls=true,RestrictPublicBuckets=true",
+        "console_steps": "1. In the AWS Console, go to S3 and open the bucket <example_resource_name>\n2. Select the Permissions tab\n3. Under Block public access (bucket settings), click Edit\n4. Check only:\n   - Ignore public ACLs (true)\n   - Restrict public buckets (true)\n5. Click Save changes and confirm",
+        "terraform": "# Enable minimal S3 Block Public Access on the bucket\nresource \"aws_s3_bucket_public_access_block\" \"example\" {\n  bucket = \"<example_resource_name>\"\n\n  ignore_public_acls     = true  # Critical: ignores public ACLs\n  restrict_public_buckets = true # Critical: restricts buckets with public policies\n}",
+        "cloudformation": "# CloudFormation: Enable minimal S3 Block Public Access on the bucket\nResources:\n  ExampleBucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      PublicAccessBlockConfiguration:\n        IgnorePublicAcls: true        # Critical: ignores any public ACL grants (AllUsers/AuthenticatedUsers)\n        RestrictPublicBuckets: true   # Critical: restricts buckets with public policies to same-account/service principals"
+      },
+      "recommendation": "Enforce defense in depth: enable **S3 Block Public Access** at org/account and bucket levels (`BlockPublicAcls`, `IgnorePublicAcls`, `BlockPublicPolicy`, `RestrictPublicBuckets`). Apply **least privilege** with explicit principals; avoid ACLs via Object Ownership. Use private access patterns (e.g., CloudFront OAC or presigned URLs) and monitor with analyzers.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_public_access",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/id_id/kitchensink/latest/testguide/access-control-block-public-access.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.33"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.37"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.38"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.37"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.38"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.35"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.36"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.33"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.3.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.4.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.26"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.28"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.33"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.2.1.31"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.21"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_6_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_2_i"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_2_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_4_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "mp_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_11"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_12"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_16"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_20"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_24_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_25"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_27"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_28"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_25"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ra_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ip_1"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1530"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "s3_bucket_public_list_acl",
+      "title": "S3 bucket is not publicly listable by Everyone or any authenticated AWS user",
+      "severity": "critical",
+      "resource_type": "AwsS3Bucket",
+      "category": "network_exposure",
+      "description": "**Amazon S3 buckets** are evaluated for **public listing via ACLs**. Grants of `READ`, `READ_ACP`, or `FULL_CONTROL` to the `AllUsers` or `AuthenticatedUsers` groups are identified. Effective **Block Public Access** at account or bucket level (notably `IgnorePublicAcls` and `RestrictPublicBuckets`) is considered in the evaluation.",
+      "risk": "**Public listability** reveals object names, counts, and structure, enabling reconnaissance and targeted scraping. `READ_ACP` exposes permission details for further abuse. With `FULL_CONTROL`, attackers could alter ACLs and disrupt access, undermining **confidentiality** and risking **integrity** and **availability**.",
+      "remediation": {
+        "cli": "aws s3api put-public-access-block --bucket <bucket_name> --public-access-block-configuration IgnorePublicAcls=true,RestrictPublicBuckets=true",
+        "console_steps": "1. In the AWS Console, go to S3 and open the bucket\n2. Select the Permissions tab\n3. Click Edit under Block public access (bucket settings)\n4. Enable:\n   - Ignore public ACLs (bucket and objects)\n   - Restrict public buckets\n5. Click Save",
+        "terraform": "# Block public listing by enabling bucket-level Public Access Block\nresource \"aws_s3_bucket_public_access_block\" \"<example_resource_name>\" {\n  bucket                 = \"<example_resource_id>\"\n  ignore_public_acls     = true  # Critical: ignore any public ACLs\n  restrict_public_buckets = true # Critical: restrict buckets with public policies\n}",
+        "cloudformation": "# CloudFormation: Block public listing via bucket-level Public Access Block\nResources:\n  ExamplePublicAccessBlock:\n    Type: AWS::S3::BucketPublicAccessBlock\n    Properties:\n      Bucket: \"<example_resource_name>\"\n      PublicAccessBlockConfiguration:\n        IgnorePublicAcls: true        # Critical: ignore any public ACLs so they don't grant list access\n        RestrictPublicBuckets: true   # Critical: restrict buckets with public policies to trusted principals"
+      },
+      "recommendation": "Enable account-level **S3 Block Public Access** (`BlockPublicAcls`, `IgnorePublicAcls`, `BlockPublicPolicy`, `RestrictPublicBuckets`).\n- Remove ACL grants to `AllUsers`/`AuthenticatedUsers`; apply **least privilege** with IAM/bucket policies.\n- Favor private patterns (VPC endpoints, CloudFront OAC, presigned URLs) and disable ACLs via Object Ownership.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_public_list_acl",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement-staging/knowledge-base/aws/S3/s3-bucket-public-read-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access/Unauthorized Access"
+      ],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "s3_bucket_public_write_acl",
+      "title": "S3 bucket ACL does not grant write access to Everyone or any AWS customer",
+      "severity": "critical",
+      "resource_type": "AwsS3Bucket",
+      "category": "network_exposure",
+      "description": "**Amazon S3 buckets** are assessed for ACL grants that allow **public write** access to `AllUsers` or `AuthenticatedUsers` via `WRITE`, `WRITE_ACP`, or `FULL_CONTROL`. Effective **Block Public Access** at account or bucket level (`ignore_public_acls`, `restrict_public_buckets`) is considered.",
+      "risk": "Public or cross-account writes enable object tampering, **log poisoning**, and ACL changes via `WRITE_ACP`, undermining **integrity** and causing covert **data exposure**. Attackers can plant malware, deface content, and inflate **costs**, impacting **availability** through overwrites or prefix flooding.",
+      "remediation": {
+        "cli": "aws s3api put-bucket-acl --bucket <bucket_name> --acl private",
+        "console_steps": "1. In the AWS Console, go to S3 > Buckets and open <bucket_name>\n2. Go to the Permissions tab > Access control list (ACL) > Edit\n3. Remove any grantee \"Everyone (public access)\" or \"Any AWS account\" with Write, Write ACL, or Full control\n4. Ensure only the bucket owner retains Full control\n5. Click Save changes",
+        "terraform": "# Ensure the bucket is not publicly writable via ACLs\nresource \"aws_s3_bucket_public_access_block\" \"<example_resource_name>\" {\n  bucket                  = \"<example_resource_name>\"\n  ignore_public_acls      = true  # Critical: disables effect of public ACLs (e.g., AllUsers/AuthenticatedUsers)\n  restrict_public_buckets = true  # Critical: restricts public buckets to the account to prevent public writes\n}",
+        "cloudformation": "# CloudFormation: ensure bucket is not publicly writable via ACLs\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      PublicAccessBlockConfiguration:\n        IgnorePublicAcls: true       # Critical: ignores any public ACLs (e.g., AllUsers/AuthenticatedUsers) so write grants don't apply\n        RestrictPublicBuckets: true  # Critical: restricts public buckets to the account, preventing public writes via policies"
+      },
+      "recommendation": "Apply **least privilege** to S3 writes. Enable account-level **Block Public Access** and use **Object Ownership** to disable ACLs. Grant write only to fixed principals via bucket policies with tight conditions (e.g., org IDs, VPC endpoints). Add **versioning** and monitoring for defense-in-depth.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_public_write_acl",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement-staging/knowledge-base/aws/S3/s3-bucket-public-write-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.2.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.35"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.39"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.39"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.37"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.35"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.24"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.29"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.35"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.22"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ra_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access/Unauthorized Access"
+      ],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "s3_account_level_public_access_blocks",
+      "title": "S3 account-level Block Public Access ignores public ACLs and restricts public buckets",
+      "severity": "high",
+      "resource_type": "AwsS3AccountPublicAccessBlock",
+      "category": "network_exposure",
+      "description": "**Amazon S3** account-level **Block Public Access** is assessed for `ignore_public_acls` and `restrict_public_buckets` to confirm centralized blocking of ACL-based public access and limiting buckets with public policies to in-account principals.",
+      "risk": "Absent these settings, **public ACLs** and broad bucket policies may grant internet or cross-account access. This risks:\n- Confidentiality: bulk data exfiltration\n- Integrity: object overwrite/tampering\n- Availability: malicious deletions or malware hosting, triggering takedowns",
+      "remediation": {
+        "cli": "aws s3control put-public-access-block --account-id <account_id> --public-access-block-configuration IgnorePublicAcls=true,RestrictPublicBuckets=true",
+        "console_steps": "1. In the AWS Console, go to S3\n2. Click Block public access (account settings)\n3. Click Edit\n4. Turn on: Ignore public ACLs and Restrict public buckets\n5. Click Save changes",
+        "terraform": "# Terraform: Enable required S3 Account-level Block Public Access settings\nresource \"aws_s3_account_public_access_block\" \"<example_resource_name>\" {\n  ignore_public_acls     = true  # Critical: Ignores any public ACLs account-wide\n  restrict_public_buckets = true # Critical: Restricts buckets with public policies to same-account principals\n}",
+        "cloudformation": "# CloudFormation: Enable required S3 Account-level Block Public Access settings\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::AccountPublicAccessBlock\n    Properties:\n      AccountId: !Ref AWS::AccountId\n      IgnorePublicAcls: true         # Critical: Ignores any public ACLs at the account level\n      RestrictPublicBuckets: true    # Critical: Restricts buckets with public policies to only same-account principals"
+      },
+      "recommendation": "Turn on account-level **Block Public Access** (prefer enabling all four: `block_public_acls`, `ignore_public_acls`, `block_public_policy`, `restrict_public_buckets`) to enforce least privilege. For legitimate access, use private buckets with **CloudFront**, VPC endpoints, or presigned URLs. Regularly review policies with IAM Access Analyzer.",
+      "reference_url": "https://hub.prowler.com/check/s3_account_level_public_access_blocks",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.1.4"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "2.1.4"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "1.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "7.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.31"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.8.32"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.35"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.1.36"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.35"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.3.2.36"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.33"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.4.2.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.31"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.5.1.32"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.24"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.25"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.16"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.31"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.3.32"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.18"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_i"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_2_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_4_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "mp_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_7"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_11"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_12"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_16"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_20"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_21"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_24_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_25"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_27"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_28"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_25"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_3"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.1"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1530"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "s3_bucket_cross_account_access",
+      "title": "S3 bucket policy does not allow cross-account access",
+      "severity": "high",
+      "resource_type": "AwsS3Bucket",
+      "category": "access_control",
+      "description": "**Amazon S3 bucket policies** are analyzed for statements that grant **cross-account access**.\n\nAny policy that names principals outside the owning account (other account IDs or `Principal: \"*\"`) is treated as cross-account; absence of a policy implies no cross-account grants.",
+      "risk": "Cross-account grants can let external principals read, write, or administer the bucket, impacting:\n- Confidentiality: unauthorized object access/exfiltration\n- Integrity: object tampering, policy or encryption changes\n- Availability: deletions, versioning changes, or lockouts causing data loss and downtime",
+      "remediation": {
+        "cli": "aws s3api delete-bucket-policy --bucket <example_resource_name>",
+        "console_steps": "1. In the AWS console, go to S3 > Buckets > select the bucket\n2. Open the Permissions tab > Bucket policy\n3. Click Delete bucket policy (or remove all statements) and Save\n4. If a policy is required, ensure all statements only use your account as Principal (arn:aws:iam::<YOUR_ACCOUNT_ID>:root); remove any other accounts or \"*\"",
+        "terraform": "# Terraform: restrict bucket policy to this AWS account only\nresource \"aws_s3_bucket_policy\" \"<example_resource_name>\" {\n  bucket = \"<example_resource_name>\"\n  policy = jsonencode({\n    Version   = \"2012-10-17\"\n    Statement = [{\n      Effect    = \"Allow\"\n      Principal = { AWS = \"arn:aws:iam::<example_resource_id>:root\" } # Critical: limits access to the bucket owner's account, preventing cross-account access\n      Action    = \"s3:*\"\n      Resource  = [\n        \"arn:aws:s3:::<example_resource_name>\",\n        \"arn:aws:s3:::<example_resource_name>/*\"\n      ]\n    }]\n  })\n}",
+        "cloudformation": "# CloudFormation: restrict bucket policy to this AWS account only\nResources:\n  <example_resource_name>BucketPolicy:\n    Type: AWS::S3::BucketPolicy\n    Properties:\n      Bucket: <example_resource_name>\n      PolicyDocument:\n        Version: '2012-10-17'\n        Statement:\n          - Effect: Allow\n            Principal:\n              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root  # Critical: limits access to the bucket owner's account, preventing cross-account access\n            Action: s3:*\n            Resource:\n              - !Sub arn:aws:s3:::<example_resource_name>\n              - !Sub arn:aws:s3:::<example_resource_name>/*"
+      },
+      "recommendation": "Enforce **least privilege**: limit bucket policy `Principal` to your account or approved org IDs with fixed values; avoid wildcards.\n\nUse **role-based cross-account access** with scoped permissions when needed. Add **defense-in-depth** conditions (private networks, TLS), and periodically review for unintended external access.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_cross_account_access",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html#s3-6",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.6"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.7"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.6.3.33"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.6.3.35"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.1.25"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.1.26"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.1.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.2.25"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.2.26"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.2.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.5.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.5.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.5.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.6.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.6.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.1.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.1.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.1.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.2.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.2.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.2.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.3.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.3.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.3.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.7.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.7.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.7.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.8.21"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.8.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.8.23"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.4.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.4.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.4.21"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ra_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ip_1"
+        }
+      ],
+      "mitre_attack": [
+        "Initial Access/Unauthorized Access"
+      ],
+      "prowler_categories": [
+        "identity-access",
+        "trust-boundaries"
+      ]
+    },
+    {
+      "id": "s3_bucket_level_public_access_block",
+      "title": "S3 bucket has Block Public Access with IgnorePublicAcls and RestrictPublicBuckets enabled at bucket or account level",
+      "severity": "high",
+      "resource_type": "AwsS3Bucket",
+      "category": "network_exposure",
+      "description": "**Amazon S3 buckets** are evaluated for **Block Public Access** settings, ensuring `ignore_public_acls` and `restrict_public_buckets` are enabled at the bucket or account scope.\n\n*Account-wide protections, when present, are treated as effective for the bucket.*",
+      "risk": "Absent **S3 Block Public Access**, public ACLs or broad policies can grant Internet or cross-account access.\n- Data disclosure (confidentiality)\n- Object overwrite or uploads (integrity)\n- Deletion or outages from misuse (availability)",
+      "remediation": {
+        "cli": "aws s3api put-public-access-block --bucket <BUCKET_NAME> --public-access-block-configuration IgnorePublicAcls=true,RestrictPublicBuckets=true",
+        "console_steps": "1. In AWS Console, open S3 and select the target bucket\n2. Go to Permissions > Block public access (bucket settings)\n3. Enable only:\n   - Ignore public ACLs\n   - Restrict public buckets\n4. Click Save changes\n5. (Alternatively, to apply account-wide) S3 > Account settings > Block Public Access: enable the same two options and Save",
+        "terraform": "# Enable required S3 Block Public Access settings on a bucket\nresource \"aws_s3_bucket_public_access_block\" \"<example_resource_name>\" {\n  bucket                   = \"<example_resource_id>\"\n  ignore_public_acls       = true  # CRITICAL: Ignore public ACLs\n  restrict_public_buckets  = true  # CRITICAL: Restrict public buckets\n}",
+        "cloudformation": "# CloudFormation - enable required S3 Block Public Access settings on a bucket\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      PublicAccessBlockConfiguration:\n        IgnorePublicAcls: true        # CRITICAL: Ignore public ACLs on the bucket/objects\n        RestrictPublicBuckets: true   # CRITICAL: Restrict buckets with public policies to same-account/AWS services"
+      },
+      "recommendation": "Enable **Block Public Access** at account and bucket levels with `block_public_acls`, `ignore_public_acls`, `block_public_policy`, and `restrict_public_buckets` set to `true`. Apply **least privilege** and **defense in depth**. *If public access is required*, narrowly scope policies to fixed principals and conditions.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_level_public_access_block",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/S3/bucket-public-access-block.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.1.4"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "2.1.4"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.8"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_3"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1530"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "s3_bucket_shadow_resource_vulnerability",
+      "title": "S3 bucket is not a known shadow resource owned by another account",
+      "severity": "high",
+      "resource_type": "AwsS3Bucket",
+      "category": "data_exposure",
+      "description": "**Amazon S3 buckets** using **predictable service naming** (e.g., `aws-glue-assets-<account>-<region>`, `sagemaker-<region>-<account>`) are identified and their **ownership** checked.\n\nBuckets tied to your account that match these patterns but are owned by another account-across regions-are surfaced as shadow-resource candidates.",
+      "risk": "**Preclaimed buckets** matching your account's patterns let outsiders intercept service artifacts, causing:\n- Loss of **confidentiality** (templates, data exfiltration)\n- Compromised **integrity** (script/config injection  RCE, privilege escalation)\n- Reduced **availability** (creation failures or redirected writes)",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the Prowler finding, copy the exact bucket name flagged (e.g., aws-glue-assets-<ACCOUNT_ID>-<REGION>).\n2. Open the AWS S3 console and click Create bucket.\n3. Paste the exact bucket name and select the region that matches the name.\n4. Click Create bucket.\n5. Repeat for each flagged name/region so all predictable service buckets are owned by your account.",
+        "terraform": "# Terraform: pre-claim the predictable S3 bucket name to ensure your account owns it\nresource \"aws_s3_bucket\" \"<example_resource_name>\" {\n  bucket = \"<FLAGGED_BUCKET_NAME>\"  # Critical: create the exact bucket name reported by the check so it is owned by this account\n}",
+        "cloudformation": "# CloudFormation: pre-claim the predictable S3 bucket name to ensure your account owns it\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName: <FLAGGED_BUCKET_NAME>  # Critical: create the exact bucket name reported by the check so it is owned by this account"
+      },
+      "recommendation": "Apply **defense in depth**:\n- **Preprovision and own** required service buckets in all current and planned regions\n- Enforce **least privilege** so services write only to approved bucket names/ARNs\n- Use **non-guessable names** where you control naming\n- Monitor for look-alike buckets and separate duties for bucket creation vs. use",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_shadow_resource_vulnerability",
+      "aws_doc_urls": [
+        "https://www.techtarget.com/searchsecurity/news/366602412/Researchers-unveil-AWS-vulnerabilities-shadow-resource-vector",
+        "https://www.aquasec.com/blog/bucket-monopoly-breaching-aws-accounts-through-shadow-resources/#section-10"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ra_1"
+        }
+      ],
+      "mitre_attack": [
+        "Collection"
+      ],
+      "prowler_categories": [
+        "trust-boundaries"
+      ]
+    },
+    {
+      "id": "s3_multi_region_access_point_public_access_block",
+      "title": "S3 Multi-Region Access Point has all Block Public Access settings enabled",
+      "severity": "high",
+      "resource_type": "AwsS3AccessPoint",
+      "category": "network_exposure",
+      "description": "**Amazon S3 Multi-Region Access Points** are evaluated for **Block Public Access** being fully enabled (`block_public_acls`, `ignore_public_acls`, `block_public_policy`, `restrict_public_buckets`).\n\nFocus is on the MRAP's own settings, separate from bucket or account configurations.",
+      "risk": "Without MRAP **Block Public Access**, the global endpoint can accept internet traffic, exposing linked buckets.\n\nThis undermines confidentiality (object listing/reads) and integrity (unauthorized writes or policy abuse), and can trigger costly egress and data tampering across Regions.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the AWS Console, go to S3 > Multi-Region Access Points\n2. Select the failing Multi-Region Access Point and choose Delete (settings cannot be edited after creation)\n3. Click Create Multi-Region Access Point\n4. Enter a name and select at least two buckets in different Regions\n5. Ensure Block public access is enabled for all four settings (default): BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets\n6. Create the Multi-Region Access Point",
+        "terraform": "# Terraform: MRAP with Block Public Access enabled (must be set at creation)\nresource \"aws_s3control_multi_region_access_point\" \"<example_resource_name>\" {\n  account_id = \"<example_account_id>\"\n\n  details {\n    name = \"<example_resource_name>\"\n\n    public_access_block {                 # Critical: enable all Block Public Access settings\n      block_public_acls       = true      # Critical\n      ignore_public_acls      = true      # Critical\n      block_public_policy     = true      # Critical\n      restrict_public_buckets = true      # Critical\n    }\n\n    region { bucket = \"<example_bucket_name_1>\" }\n    region { bucket = \"<example_bucket_name_2>\" }\n  }\n}",
+        "cloudformation": "# CloudFormation: MRAP with Block Public Access enabled (cannot be changed after creation)\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::MultiRegionAccessPoint\n    Properties:\n      Name: <example_resource_name>\n      PublicAccessBlockConfiguration:           # Critical: enable all Block Public Access settings\n        BlockPublicAcls: true                   # Critical: blocks ACLs granting public access\n        IgnorePublicAcls: true                  # Critical: ignores any public ACLs\n        BlockPublicPolicy: true                 # Critical: blocks public bucket policies\n        RestrictPublicBuckets: true             # Critical: restricts public bucket policies\n      Regions:\n        - Bucket: <example_bucket_name_1>\n        - Bucket: <example_bucket_name_2>"
+      },
+      "recommendation": "Adopt **deny-by-default**: keep all MRAP **Block Public Access** settings enabled; avoid public ACLs or policies.\n- Enforce **least privilege**\n- Prefer private access (VPC endpoints)\n- Periodically review permissions and logs\n\n*MRAP public access settings are immutable after creation.*",
+      "reference_url": "https://hub.prowler.com/check/s3_multi_region_access_point_public_access_block",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/multi-region-access-point-block-public-access.html",
+        "https://aws.amazon.com/es/getting-started/hands-on/getting-started-with-amazon-s3-multi-region-access-points/",
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html#s3-24"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ac_3"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "internet-exposed"
+      ]
+    },
+    {
+      "id": "s3_bucket_acl_prohibited",
+      "title": "S3 bucket has bucket ACLs disabled",
+      "severity": "medium",
+      "resource_type": "AwsS3Bucket",
+      "category": "access_control",
+      "description": "**Amazon S3 buckets** are evaluated for **Object Ownership** set to `BucketOwnerEnforced`, which disables bucket and object ACLs. Buckets using any other ownership setting indicate that ACLs remain enabled.",
+      "risk": "With **ACLs enabled**, access can bypass centralized policy controls, impacting confidentiality and integrity.\n- Unintended public or cross-account reads/writes\n- Object-writer ownership blocking bucket-owner governance\n- Per-object grants hinder auditing, enabling data exfiltration or tampering",
+      "remediation": {
+        "cli": "aws s3api put-bucket-ownership-controls --bucket <bucket-name> --ownership-controls \"Rules=[{ObjectOwnership=BucketOwnerEnforced}]\"",
+        "console_steps": "1. In the AWS Console, go to S3 > Buckets and select the target bucket\n2. Open the Permissions tab\n3. In Object Ownership, click Edit\n4. Select Bucket owner enforced (ACLs disabled)\n5. Click Save changes",
+        "terraform": "# Disable ACLs by enforcing bucket owner for all objects\nresource \"aws_s3_bucket_ownership_controls\" \"<example_resource_name>\" {\n  bucket = \"<example_resource_id>\"\n  rule {\n    object_ownership = \"BucketOwnerEnforced\" # Critical: Disables ACLs and enforces bucket owner\n  }\n}",
+        "cloudformation": "# CloudFormation: Disable ACLs by enforcing bucket owner for all objects\nResources:\n  <example_resource_name>OwnershipControls:\n    Type: AWS::S3::BucketOwnershipControls\n    Properties:\n      Bucket: <example_resource_name>\n      OwnershipControls:\n        Rules:\n          - ObjectOwnership: BucketOwnerEnforced  # Critical: Disables ACLs and makes bucket owner the object owner"
+      },
+      "recommendation": "Disable ACLs by setting **Object Ownership** to `BucketOwnerEnforced` and manage access with **IAM** and **bucket policies** under **least privilege**. Centralize authorization, review policies regularly, and use organizational guardrails to prevent re-enabling ACLs. *Migrate ACL-based grants into policies before the change.*",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_acl_prohibited",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/ensure-object-ownership.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.1.24"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.2.24"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.2.5.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.1.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.2.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "7.3.3.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.7.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.2.8.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.4.18"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "identity-access"
+      ]
+    },
+    {
+      "id": "s3_bucket_default_encryption",
+      "title": "S3 bucket has default server-side encryption (SSE) enabled",
+      "severity": "medium",
+      "resource_type": "AwsS3Bucket",
+      "category": "encryption",
+      "description": "**Amazon S3 buckets** have a default **server-side encryption** setting that automatically encrypts new objects using `SSE-S3` or `SSE-KMS`. This evaluates whether a bucket has a default encryption configuration defined.",
+      "risk": "Without default encryption, older objects may remain unencrypted and new uploads won't be forced to use `SSE-KMS`. This reduces confidentiality and governance by limiting key audit logs, rotation, and cross-account controls, and increases exposure if data is copied, replicated, or accessed outside intended paths.",
+      "remediation": {
+        "cli": "aws s3api put-bucket-encryption --bucket <bucket_name> --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"AES256\"}}]}'",
+        "console_steps": "1. Open the AWS S3 console and select the bucket\n2. Go to the Properties tab\n3. In Default encryption, click Edit\n4. Enable default encryption and select SSE-S3 (AES-256)\n5. Click Save changes",
+        "terraform": "resource \"aws_s3_bucket\" \"<example_resource_name>\" {\n  bucket = \"<example_resource_name>\"\n}\n\nresource \"aws_s3_bucket_server_side_encryption_configuration\" \"<example_resource_name>\" {\n  bucket = aws_s3_bucket.<example_resource_name>.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"AES256\"  # Critical: enables default SSE-S3 for the bucket\n    }\n  }\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketEncryption:\n        ServerSideEncryptionConfiguration:\n          - ServerSideEncryptionByDefault:\n              SSEAlgorithm: AES256  # Critical: enables default SSE-S3 so new objects are encrypted"
+      },
+      "recommendation": "Enable default encryption on all buckets, preferring `SSE-KMS` for sensitive data to retain key control and auditing. Enforce encryption with restrictive bucket policies, apply **least privilege** to KMS keys with rotation, and re-encrypt existing objects. Use **defense in depth** monitoring to detect drift and noncompliant uploads.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_default_encryption",
+      "aws_doc_urls": [
+        "https://docs.amazonaws.cn/en_us/AmazonS3/latest/userguide/bucket-encryption.html",
+        "https://aws.amazon.com/blogs/security/how-to-prevent-uploads-of-unencrypted-objects-to-amazon-s3/",
+        "https://docs.aws.amazon.com/us_en/AmazonS3/latest/userguide/default-encryption-faq.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.d"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.30"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.48"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_4"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_4_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_2_iv"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_2"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_ii"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_9_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_8"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_11_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_13_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_16_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_28_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_19_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_3"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_32"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.11"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1119"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1530"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "s3_bucket_kms_encryption",
+      "title": "S3 bucket has server-side encryption with AWS KMS",
+      "severity": "medium",
+      "resource_type": "AwsS3Bucket",
+      "category": "encryption",
+      "description": "**Amazon S3 buckets** use server-side encryption with **AWS KMS** keys, including dual-layer `aws:kms:dsse`. The evaluation identifies buckets whose default encryption is `aws:kms` or `aws:kms:dsse` rather than SSE-S3.",
+      "risk": "Without **KMS-based encryption**, data relies only on SSE-S3, reducing **confidentiality** controls. Missing key policies and grants weakens **least privilege**, cross-account scoping, and the ability to disable or rotate keys. Lack of **KMS audit trails** obscures key usage, hindering detection of misuse and **defense in depth**.",
+      "remediation": {
+        "cli": "aws s3api put-bucket-encryption --bucket <BUCKET_NAME> --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"aws:kms\"}}]}'",
+        "console_steps": "1. In the AWS Console, go to S3 and open the target bucket\n2. Select the Properties tab\n3. Under Default encryption, click Edit\n4. Choose Server-side encryption with AWS KMS keys (SSE-KMS)\n5. Leave AWS managed key (aws/s3) selected (or choose your CMK if required)\n6. Click Save changes",
+        "terraform": "# Enable default SSE-KMS on an existing S3 bucket\nresource \"aws_s3_bucket_server_side_encryption_configuration\" \"<example_resource_name>\" {\n  bucket = \"<example_bucket_name>\"\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\" # Critical: enforces SSE-KMS by default\n    }\n  }\n}",
+        "cloudformation": "# CloudFormation: enable default SSE-KMS on the bucket\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketEncryption:\n        ServerSideEncryptionConfiguration:\n          - ServerSideEncryptionByDefault:\n              SSEAlgorithm: aws:kms  # Critical: sets default encryption to AWS KMS (SSE-KMS)"
+      },
+      "recommendation": "Enable default **SSE-KMS** (or **DSSE-KMS** for highly sensitive data). Use a customer-managed key, enforce **least privilege** and separation of duties for key usage, and require KMS encryption via bucket policy (specify `aws:kms` and a designated key). Monitor key activity in **CloudTrail** and consider **S3 Bucket Keys** to control cost.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_kms_encryption",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-bucket-encryption.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement-staging/knowledge-base/aws/S3/encrypted-with-kms-customer-master-keys.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.17"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.b"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.4.d"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "8.2.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.31"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.50"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_1"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_4"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.11"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.24"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "s3_bucket_no_mfa_delete",
+      "title": "S3 bucket has MFA Delete enabled",
+      "severity": "medium",
+      "resource_type": "AwsS3Bucket",
+      "category": "access_control",
+      "description": "**Amazon S3 buckets** are assessed for **MFA Delete** status. MFA Delete requires a second factor to permanently delete object versions or change `Versioning` configuration. The finding highlights buckets where this protection is not enabled.",
+      "risk": "Without **MFA Delete**, a compromised or over-privileged identity can irrevocably purge object history or change versioning.\n\nThis erases recovery points, degrading data **availability**, weakening **integrity**, and increasing the blast radius of account compromise or ransomware.",
+      "remediation": {
+        "cli": "aws s3api put-bucket-versioning --bucket <BUCKET_NAME> --versioning-configuration Status=Enabled,MFADelete=Enabled --mfa \"<MFA_SERIAL_OR_ARN> <MFA_CODE>\"",
+        "console_steps": "1. Sign in to the AWS Management Console as the root user\n2. Open the account menu > Security credentials > Multi-factor authentication (MFA) and assign an MFA device; copy its ARN/serial\n3. From a machine configured to use the root user credentials, run:\n\n```bash\naws s3api put-bucket-versioning --bucket <BUCKET_NAME> --versioning-configuration Status=Enabled,MFADelete=Enabled --mfa \"<MFA_SERIAL_OR_ARN> <MFA_CODE>\"\n```",
+        "terraform": "",
+        "cloudformation": ""
+      },
+      "recommendation": "Enable **MFA Delete** on sensitive, versioned buckets so permanent deletions and `Versioning` changes require a second factor. Apply **least privilege** to restrict version purge actions, enforce **change control**, and combine with **Object Lock** or immutable backups for defense in depth.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_no_mfa_delete",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMFADelete.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.1.2"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "2.1.2"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.20"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.2.22"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.5.1.3.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.4.1.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.4.2.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.4.3.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.1.2.18"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.4.1.20"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1485"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "identity-access"
+      ]
+    },
+    {
+      "id": "s3_bucket_object_versioning",
+      "title": "S3 bucket has object versioning enabled",
+      "severity": "medium",
+      "resource_type": "AwsS3Bucket",
+      "category": "data_exposure",
+      "description": "**Amazon S3 buckets** are evaluated for **object versioning** being `Enabled`, which maintains multiple versions of the same object key for historical state retention",
+      "risk": "Without **versioning**, deletions and overwrites remove the only copy, undermining **availability** and **integrity**.\n- Compromised identities or buggy apps can mass-delete/corrupt data\n- No historical versions means limited rollback and irrecoverable loss",
+      "remediation": {
+        "cli": "aws s3api put-bucket-versioning --bucket <BUCKET_NAME> --versioning-configuration Status=Enabled",
+        "console_steps": "1. In the AWS Console, go to S3 > Buckets and select the target bucket\n2. Open the Properties tab\n3. Find Bucket Versioning and click Edit\n4. Select Enable and click Save changes",
+        "terraform": "# Enable versioning on an existing S3 bucket\nresource \"aws_s3_bucket_versioning\" \"<example_resource_name>\" {\n  bucket = \"<example_resource_name>\"\n  versioning_configuration {\n    status = \"Enabled\"  # Critical: enables bucket versioning to remediate the finding\n  }\n}",
+        "cloudformation": "# CloudFormation: enable versioning on an S3 bucket\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled  # Critical: turns on object versioning to pass the check"
+      },
+      "recommendation": "Enable **S3 versioning** for buckets holding important or shared data.\n- Enforce **least privilege** to limit delete/overwrite\n- Use **Object Lock** and/or **MFA Delete** for stronger protection\n- Apply **lifecycle rules** to manage noncurrent versions and costs\n- Layer with backups/replication for **defense in depth**",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_object_versioning",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/dev-retired/Versioning.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.14"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.5.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.5.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.5.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.4.9"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_4"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_a_1_1"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_c_1_2"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_5"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_7_ii_c"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_2_ii"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_9_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_1_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_2_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_6_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_6_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_9_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cp_10_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_11_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_5_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_16_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_1_a_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_13_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.3"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.10"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1485"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1486"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "s3_bucket_secure_transport_policy",
+      "title": "S3 bucket policy denies requests over insecure transport",
+      "severity": "medium",
+      "resource_type": "AwsS3Bucket",
+      "category": "encryption",
+      "description": "**Amazon S3 buckets** are evaluated for a bucket policy that enforces **secure transport** by denying requests when `aws:SecureTransport` is `false`.\n\nBuckets without this explicit denial, or without a policy, are treated as allowing access over insecure transport.",
+      "risk": "HTTP access exposes object data and auth details to **eavesdropping** and **man-in-the-middle** attacks. Captured **pre-signed URLs** can be replayed to exfiltrate data. Traffic can be intercepted or altered, undermining **confidentiality** and **integrity** of S3 content.",
+      "remediation": {
+        "cli": "aws s3api put-bucket-policy --bucket <example_resource_name> --policy '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Deny\",\"Principal\":\"*\",\"Action\":\"s3:*\",\"Resource\":\"arn:aws:s3:::<example_resource_name>/*\",\"Condition\":{\"Bool\":{\"aws:SecureTransport\":\"false\"}}}]}'",
+        "console_steps": "1. In the AWS Console, go to S3 and open the bucket <example_resource_name>\n2. Select the Permissions tab and click Edit in Bucket policy\n3. Paste this policy, replacing the bucket name:\n   ```\n   {\n     \"Version\": \"2012-10-17\",\n     \"Statement\": [\n       {\n         \"Effect\": \"Deny\",\n         \"Principal\": \"*\",\n         \"Action\": \"s3:*\",\n         \"Resource\": \"arn:aws:s3:::<example_resource_name>/*\",\n         \"Condition\": { \"Bool\": { \"aws:SecureTransport\": \"false\" } }\n       }\n     ]\n   }\n   ```\n4. Click Save changes\n",
+        "terraform": "# Deny non-SSL (HTTP) requests to the S3 bucket\nresource \"aws_s3_bucket_policy\" \"policy\" {\n  bucket = \"<example_resource_name>\"\n  policy = jsonencode({\n    Version   = \"2012-10-17\"\n    Statement = [{\n      Effect    = \"Deny\"\n      Principal = \"*\"\n      Action    = \"s3:*\"\n      Resource  = \"arn:aws:s3:::<example_resource_name>/*\"\n      Condition = {\n        Bool = {\n          \"aws:SecureTransport\" = \"false\" # Critical: deny requests not using SSL/TLS\n        }\n      }\n    }]\n  })\n}",
+        "cloudformation": "# CloudFormation: Deny non-SSL (HTTP) requests to the S3 bucket\nResources:\n  BucketPolicy:\n    Type: AWS::S3::BucketPolicy\n    Properties:\n      Bucket: <example_resource_name>\n      PolicyDocument:\n        Version: '2012-10-17'\n        Statement:\n          - Effect: Deny\n            Principal: \"*\"\n            Action: s3:*\n            Resource: arn:aws:s3:::<example_resource_name>/*\n            Condition:\n              Bool:\n                aws:SecureTransport: \"false\"  # Critical: deny requests not using SSL/TLS"
+      },
+      "recommendation": "Enforce **HTTPS-only** access with a bucket policy that denies requests when `aws:SecureTransport=false`.\n\nPrefer **private access** (VPC endpoints or CloudFront with TLS), avoid S3 website endpoints, apply **least privilege**, use short-lived HTTPS **pre-signed URLs**, and monitor logs for insecure access attempts.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_secure_transport_policy",
+      "aws_doc_urls": [
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/S3/secure-transport.html",
+        "https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "CIS",
+          "version": "2.0",
+          "control": "2.1.1"
+        },
+        {
+          "framework": "CIS",
+          "version": "3.0",
+          "control": "2.1.1"
+        },
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "1.2.5.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.5.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "2.2.7.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.1.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "4.2.1.19"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "8.3.2.49"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_a_2_iv"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_c_2"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_i"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_ii"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_22"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_17_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_24_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_9_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ia_5_1_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_11_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_17_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_4_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_4_g"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_8_5"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_13_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_16_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_23"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_1_a_2"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_2"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_4"
+        },
+        {
+          "framework": "GDPR",
+          "version": "",
+          "control": "article_32"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1040"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "encryption"
+      ]
+    },
+    {
+      "id": "s3_bucket_server_access_logging_enabled",
+      "title": "S3 bucket has server access logging enabled",
+      "severity": "medium",
+      "resource_type": "AwsS3Bucket",
+      "category": "logging_monitoring",
+      "description": "**Amazon S3 buckets** are evaluated for **server access logging** configured to record access requests and deliver logs to a designated destination bucket.",
+      "risk": "Without access logs, object reads, writes, and deletions may go untracked, hindering detection of unauthorized access and data exfiltration. This degrades forensic visibility, delays incident response, and weakens evidence integrity, impacting confidentiality and integrity.",
+      "remediation": {
+        "cli": "aws s3api put-bucket-logging --bucket <BUCKET_NAME> --bucket-logging-status '{\"LoggingEnabled\":{\"TargetBucket\":\"<LOG_BUCKET>\",\"TargetPrefix\":\"logs/\"}}'",
+        "console_steps": "1. Open the AWS Management Console and go to S3\n2. Select the bucket with the finding\n3. Go to the Properties tab\n4. In Server access logging, click Edit\n5. Toggle Enable, choose the target log bucket, and Save",
+        "terraform": "resource \"aws_s3_bucket_logging\" \"<example_resource_name>\" {\n  bucket        = \"<example_bucket_name>\"\n  target_bucket = \"<example_log_bucket_name>\"  # CRITICAL: Enables server access logging by specifying the target bucket\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      LoggingConfiguration:\n        DestinationBucketName: <example_resource_id>  # CRITICAL: Enables server access logging by sending logs to this bucket"
+      },
+      "recommendation": "Enable **server access logging** and send logs to a dedicated log bucket with least privilege, retention, and monitoring. Complement with **CloudTrail data events** for object-level visibility. Apply **defense in depth** by centralizing logs and protecting them from tampering.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_server_access_logging_enabled",
+      "aws_doc_urls": [
+        "https://docs.amazonaws.cn/en_us/config/latest/developerguide/s3-bucket-logging-enabled.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/dev/security-best-practices.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP",
+        "CIS"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.9"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.2.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.2.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.2.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.2.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.2.7"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.3.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.3.3"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.3.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.3.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.3.6"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.5.4"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.1.30"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.2.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.3.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.4.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.5.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.6.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.7.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.1.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.2.2.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.1.27"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.6.3.34"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "5.3.4.32"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A1.2.1.32"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_2"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_7_3"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "cc_a_1_1"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_1_ii_d"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_3_ii_a"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_308_a_6_ii"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_b"
+        },
+        {
+          "framework": "HIPAA",
+          "version": "",
+          "control": "164_312_e_2_i"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_2_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_3_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_4_26"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ac_6_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_2_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_d"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_e"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_3_f"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_6"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_6_9"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_8_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_10"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_12_4"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "au_14_3"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ca_7_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_5_1_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_6_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "cm_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ia_3_3_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "ma_4_1_a"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_a_1"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_14_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "pm_31"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "sc_7_9_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_1_1_c"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_3_8_b"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_2"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_17"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_4_20"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_7_8"
+        },
+        {
+          "framework": "NIST-800-53-Revision-5",
+          "version": "",
+          "control": "si_10_1_c"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.15"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging",
+        "forensics-ready"
+      ]
+    },
+    {
+      "id": "s3_bucket_cross_region_replication",
+      "title": "S3 bucket has cross-region replication configured to a bucket in a different region",
+      "severity": "low",
+      "resource_type": "AwsS3Bucket",
+      "category": "data_exposure",
+      "description": "**Amazon S3 buckets** use **cross-Region replication** with `versioning` and an enabled rule that targets a destination bucket in a different AWS Region.\n\nBuckets with same-Region targets, missing destinations, or disabled `versioning` don't meet this replication posture.",
+      "risk": "**Single-Region storage** creates an availability gap: a Regional outage, control-plane isolation, or denial of service can make data **unreachable**.\n\nLack of replication raises RPO/RTO, delaying recovery and disrupting multi-Region workloads. Missing replicas also weaken data **integrity** during restore from corruption or deletion.",
+      "remediation": {
+        "cli": "",
+        "console_steps": "1. In the S3 console, open the source bucket\n2. Go to Properties > Bucket Versioning and click Enable\n3. Go to Management > Replication rules > Create replication rule\n4. Scope: Apply to all objects in the bucket\n5. Destination: Select a bucket in a different AWS Region\n6. Status: Ensure Enabled is selected\n7. IAM role: Choose Create new role (recommended)\n8. Save the rule",
+        "terraform": "# Enable versioning and minimal CRR to a bucket in another region\nresource \"aws_s3_bucket\" \"source\" {\n  bucket = \"<example_resource_name>\"\n\n  versioning {                      \n    enabled = true  # critical: required for replication\n  }\n\n  replication_configuration {        \n    role = aws_iam_role.replication.arn  # critical: role used by S3 to replicate\n\n    rules {\n      status = \"Enabled\"  # critical: replication rule must be enabled\n      destination {\n        bucket = \"arn:aws:s3:::<example_destination_bucket_name>\"  # critical: destination bucket ARN in a different region\n      }\n    }\n  }\n}\n\nresource \"aws_iam_role\" \"replication\" {\n  name = \"<example_resource_name>-s3-replication-role\"\n  assume_role_policy = jsonencode({\n    Version = \"2012-10-17\"\n    Statement = [{\n      Effect    = \"Allow\"\n      Principal = { Service = \"s3.amazonaws.com\" }\n      Action    = \"sts:AssumeRole\"\n    }]\n  })\n}\n\nresource \"aws_iam_role_policy\" \"replication\" {\n  name = \"<example_resource_name>-s3-replication-policy\"\n  role = aws_iam_role.replication.id\n  policy = jsonencode({\n    Version = \"2012-10-17\",\n    Statement = [\n      {\n        Effect = \"Allow\",\n        Action = [\"s3:ListBucket\", \"s3:GetReplicationConfiguration\"],\n        Resource = \"arn:aws:s3:::${aws_s3_bucket.source.bucket}\"\n      },\n      {\n        Effect = \"Allow\",\n        Action = [\n          \"s3:GetObjectVersionForReplication\",\n          \"s3:GetObjectVersionAcl\",\n          \"s3:GetObjectVersionTagging\"\n        ],\n        Resource = \"arn:aws:s3:::${aws_s3_bucket.source.bucket}/*\"\n      },\n      {\n        Effect = \"Allow\",\n        Action = [\"s3:ReplicateObject\", \"s3:ReplicateDelete\", \"s3:ReplicateTags\"],\n        Resource = \"arn:aws:s3:::<example_destination_bucket_name>/*\"\n      }\n    ]\n  })\n}",
+        "cloudformation": "# CloudFormation: Enable versioning and CRR to a bucket in another region\nResources:\n  ExampleBucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled  # critical: enables versioning (required for replication)\n      ReplicationConfiguration:  # critical: enables cross-Region replication\n        Role: !GetAtt ReplicationRole.Arn\n        Rules:\n          - Status: Enabled  # critical: replication rule must be enabled\n            Destination:\n              Bucket: arn:aws:s3:::<example_destination_bucket_name>  # critical: destination bucket ARN in a different region\n\n  ReplicationRole:\n    Type: AWS::IAM::Role\n    Properties:\n      AssumeRolePolicyDocument:\n        Version: '2012-10-17'\n        Statement:\n          - Effect: Allow\n            Principal:\n              Service: s3.amazonaws.com\n            Action: sts:AssumeRole\n      Policies:\n        - PolicyName: s3-replication-minimal\n          PolicyDocument:\n            Version: '2012-10-17'\n            Statement:\n              - Effect: Allow\n                Action:\n                  - s3:ListBucket\n                  - s3:GetReplicationConfiguration\n                Resource: !Sub arn:aws:s3:::${ExampleBucket}\n              - Effect: Allow\n                Action:\n                  - s3:GetObjectVersionForReplication\n                  - s3:GetObjectVersionAcl\n                  - s3:GetObjectVersionTagging\n                Resource: !Sub arn:aws:s3:::${ExampleBucket}/*\n              - Effect: Allow\n                Action:\n                  - s3:ReplicateObject\n                  - s3:ReplicateDelete\n                  - s3:ReplicateTags\n                Resource: arn:aws:s3:::<example_destination_bucket_name>/*"
+      },
+      "recommendation": "Enable **CRR** to a different Region with `versioning` and least-privilege roles.\n\n- Replicate needed prefixes and metadata\n- Consider `S3 Replication Time Control` for tighter RPO\n- Protect deletes via `delete marker` strategy and Object Lock\n- Monitor replication metrics and test DR regularly\n\nAlign with **defense in depth** and availability by design.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_cross_region_replication",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html#s3-7",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "2.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.5.3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "be_5"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "pt_5"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.14"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    },
+    {
+      "id": "s3_bucket_event_notifications_enabled",
+      "title": "S3 bucket has event notifications enabled",
+      "severity": "low",
+      "resource_type": "AwsS3Bucket",
+      "category": "logging_monitoring",
+      "description": "**Amazon S3 buckets** define a **notification configuration** that publishes bucket events (for example `s3:ObjectCreated:*`, `s3:ObjectRemoved:*`) to a destination. The evaluation identifies buckets that lack any notification setup.",
+      "risk": "Missing notifications leaves object and bucket changes **unseen**, weakening **integrity** and **availability** oversight. Undetected deletions, policy drift, or replication issues can stall data pipelines (S3 to Lambda/SQS), slow incident response, and allow tampering or exfiltration to persist longer.",
+      "remediation": {
+        "cli": "aws s3api put-bucket-notification-configuration --bucket <BUCKET_NAME> --notification-configuration '{\"EventBridgeConfiguration\": {}}'",
+        "console_steps": "1. Open the S3 console and select your bucket\n2. Go to the Properties tab\n3. In Event notifications, find Amazon EventBridge and turn it On (Enable)\n4. Click Save changes",
+        "terraform": "# Enable S3 event notifications via EventBridge\nresource \"aws_s3_bucket_notification\" \"<example_resource_name>\" {\n  bucket = \"<example_resource_name>\"\n\n  eventbridge {} # Critical: enables EventBridge delivery, satisfying notifications enabled\n}",
+        "cloudformation": "# CloudFormation: Enable S3 event notifications via EventBridge\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      NotificationConfiguration:\n        EventBridgeConfiguration: {}  # Critical: turns on EventBridge notifications, making notifications enabled"
+      },
+      "recommendation": "Enable **S3 event notifications** for relevant events (e.g., `s3:ObjectCreated:*`, `s3:ObjectRemoved:*`) and route to controlled destinations (SNS, SQS, Lambda, EventBridge).\n\nUse prefix/suffix filters, avoid recursive triggers, and enforce **least privilege** on targets. Pair with object-level logging for **defense in depth**.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_event_notifications_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html#s3-11",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventNotifications.html"
+      ],
+      "compliance_tags": [
+        "NIST-800-53"
+      ],
+      "compliance_details": [
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "11.5.2.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "11.6.1.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "12.10.5.5"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.3.1.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "A3.5.1.8"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "dp_4"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "logging"
+      ]
+    },
+    {
+      "id": "s3_bucket_lifecycle_enabled",
+      "title": "S3 bucket has a lifecycle configuration enabled",
+      "severity": "low",
+      "resource_type": "AwsS3Bucket",
+      "category": "compliance",
+      "description": "**Amazon S3 buckets** use **Lifecycle configurations** with at least one rule `Status: Enabled` to automate object `Transitions` and `Expiration` based on age, prefix, or tags",
+      "risk": "Without lifecycle rules, objects persist indefinitely, driving costs and retaining sensitive data beyond policy. Unchecked log/version growth strains operations and recovery. Long-lived data increases exposure if the account is compromised and can break required deletion timelines, affecting confidentiality and availability.",
+      "remediation": {
+        "cli": "aws s3api put-bucket-lifecycle-configuration --bucket <BUCKET_NAME> --lifecycle-configuration '{\"Rules\":[{\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"\"},\"AbortIncompleteMultipartUpload\":{\"DaysAfterInitiation\":7}}]}'",
+        "console_steps": "1. In the AWS Console, go to S3 and open the target bucket\n2. Select the Management tab, then click Create lifecycle rule\n3. Enter a name and choose This rule applies to all objects in the bucket\n4. Under Lifecycle rule actions, select Clean up incomplete multipart uploads and set Days after initiation to 7\n5. Ensure Status is Enabled and click Create rule",
+        "terraform": "# Minimal lifecycle configuration to mark the bucket as having an enabled rule\nresource \"aws_s3_bucket_lifecycle_configuration\" \"<example_resource_name>\" {\n  bucket = \"<example_resource_name>\"\n\n  rule {\n    status = \"Enabled\"  # CRITICAL: Enables lifecycle rule to pass the check\n    filter {}            # Applies to all objects\n\n    abort_incomplete_multipart_upload {\n      days_after_initiation = 7  # Minimal action to satisfy schema\n    }\n  }\n}",
+        "cloudformation": "# CloudFormation: enable a minimal S3 Lifecycle configuration\nResources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      LifecycleConfiguration:  # CRITICAL: Adds a Lifecycle configuration to the bucket\n        Rules:\n          - Status: Enabled     # CRITICAL: Rule must be Enabled to pass the check\n            Filter:\n              Prefix: \"\"        # Applies to all objects\n            AbortIncompleteMultipartUpload:\n              DaysAfterInitiation: 7  # Minimal action to satisfy schema"
+      },
+      "recommendation": "Define **Lifecycle policies** by data classification: set `Expiration` to enforce retention, use `Transitions` to lower-cost classes, and enable `AbortIncompleteMultipartUpload`. For critical logs, keep versioning and, *if required*, **Object Lock**. Limit who can change lifecycle using least privilege and separation of duties.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_lifecycle_enabled",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/securityhub/latest/userguide/s3-controls.html#s3-13",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html",
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/how-to-set-lifecycle-configuration-intro.html",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/S3/lifecycle-configuration.html"
+      ],
+      "compliance_tags": [
+        "AWS-FSBP"
+      ],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.13"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.1.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.2"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "3.2.c"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.7"
+        },
+        {
+          "framework": "PCI",
+          "version": "3.2.1",
+          "control": "10.7.a"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.5.1.12"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.5.1.13"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.2.1.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.2.1.9"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.1.1.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.1.1.9"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.1.3.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.1.3.9"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.2.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.2.9"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.3.8"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "3.3.3.9"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_3"
+        },
+        {
+          "framework": "NIST-CSF",
+          "version": "2.0",
+          "control": "ds_4"
+        },
+        {
+          "framework": "ISO27001",
+          "version": "2022",
+          "control": "A.8.10"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": []
+    },
+    {
+      "id": "s3_bucket_object_lock",
+      "title": "S3 bucket has Object Lock enabled",
+      "severity": "low",
+      "resource_type": "AwsS3Bucket",
+      "category": "data_exposure",
+      "description": "**Amazon S3 buckets** have **Object Lock** enabled at the bucket level, applying WORM controls to object versions",
+      "risk": "Without **Object Lock**, object versions can be deleted or overwritten, undermining data **integrity** and **availability**.\n\nThreats include ransomware erasing backups, insider or mistaken deletions, and tampering that defeats recovery. Inability to enforce retention or legal holds increases exposure to data loss and compliance gaps.",
+      "remediation": {
+        "cli": "aws s3api put-object-lock-configuration --bucket <BUCKET_NAME> --object-lock-configuration '{\"ObjectLockEnabled\":\"Enabled\",\"Rule\":{\"DefaultRetention\":{\"Mode\":\"GOVERNANCE\",\"Days\":1}}}'",
+        "console_steps": "1. Open the AWS S3 console and select the target bucket\n2. Go to the Properties tab\n3. Find Object Lock and click Edit\n4. Enable Object Lock\n5. Set Default retention: Mode = Governance, Days = 1\n6. Click Save changes\n\nNote: If the bucket was not created with Object Lock, create a new bucket with Object Lock enabled and migrate objects.",
+        "terraform": "resource \"aws_s3_bucket_object_lock_configuration\" \"<example_resource_name>\" {\n  bucket               = \"<example_resource_name>\"\n  object_lock_enabled  = \"Enabled\"  # CRITICAL: Enables Object Lock configuration on the bucket\n  rule {\n    default_retention {\n      mode = \"GOVERNANCE\"  # CRITICAL: Default retention mode\n      days = 1              # CRITICAL: Minimal retention period\n    }\n  }\n}",
+        "cloudformation": "Resources:\n  <example_resource_name>:\n    Type: AWS::S3::Bucket\n    Properties:\n      ObjectLockEnabled: true  # CRITICAL: Enables Object Lock on the bucket at creation\n      ObjectLockConfiguration:\n        ObjectLockEnabled: Enabled  # CRITICAL: Turns on Object Lock configuration\n        Rule:\n          DefaultRetention:\n            Mode: GOVERNANCE  # CRITICAL: Sets default retention mode\n            Days: 1           # CRITICAL: Minimal retention to enable default lock"
+      },
+      "recommendation": "Enable **Object Lock** for critical data and set appropriate default retention in `GOVERNANCE` or `COMPLIANCE` mode.\n\nApply **immutability** and **least privilege** by restricting permissions that bypass retention, and use legal holds when you need indefinite protection for investigations or regulatory requirements.",
+      "reference_url": "https://hub.prowler.com/check/s3_bucket_object_lock",
+      "aws_doc_urls": [
+        "https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-overview.html",
+        "https://aws.amazon.com/about-aws/whats-new/2018/11/s3-object-lock/",
+        "https://www.trendmicro.com/trendaivisiononecloudriskmanagement/knowledge-base/aws/S3/object-lock.html",
+        "https://docs.aws.amazon.com/de_de/cli/latest/reference/s3api/put-object-lock-configuration.html"
+      ],
+      "compliance_tags": [],
+      "compliance_details": [
+        {
+          "framework": "AWS-Foundational-Security-Best-Practices",
+          "version": "",
+          "control": "S3.15"
+        },
+        {
+          "framework": "PCI",
+          "version": "4.0",
+          "control": "10.3.4.7"
+        },
+        {
+          "framework": "SOC2",
+          "version": "",
+          "control": "pi_1_5"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1485"
+        },
+        {
+          "framework": "MITRE-ATTACK",
+          "version": "",
+          "control": "T1486"
+        }
+      ],
+      "mitre_attack": [],
+      "prowler_categories": [
+        "resilience"
+      ]
+    }
+  ]
+}

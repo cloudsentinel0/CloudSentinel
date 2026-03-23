@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from check_loader import build_check_reference, format_check_reference
 from scan_parser import ParsedScan, parse_scan_file
 
 
@@ -84,21 +85,34 @@ def compose_user_prompt(
     primary_service: str,
     common_patterns_text: str,
     service_skill_text: str,
+    check_reference_text: str,
     parsed_scan_payload: dict[str, Any],
 ) -> str:
-    evidence_json = json.dumps(parsed_scan_payload, indent=2, sort_keys=True)
-    return (
-        f"Primary service: {primary_service}\n\n"
-        "Use the system prompt as the CloudSentinel contract. "
-        "Use the common patterns and service skill below as supporting analysis guidance. "
-        "Analyze only the scanned scope. Return valid JSON only.\n\n"
+    evidence_json = json.dumps(parsed_scan_payload, separators=(",", ":"), sort_keys=True)
+
+    parts: list[str] = [
+        f"Primary service: {primary_service}\n",
+        "Follow the CloudSentinel contract from your system instructions. "
+        "Use the common patterns, service skill, and check catalog below as supporting analysis guidance. "
+        "Analyze only the scanned scope. Return valid JSON only.\n",
         "=== COMMON PATTERNS ===\n"
-        f"{common_patterns_text.strip()}\n\n"
+        f"{common_patterns_text.strip()}\n",
         "=== PRIMARY SERVICE SKILL ===\n"
-        f"{service_skill_text.strip()}\n\n"
+        f"{service_skill_text.strip()}\n",
+    ]
+
+    if check_reference_text:
+        parts.append(
+            "=== CHECK CATALOG REFERENCE ===\n"
+            f"{check_reference_text}\n"
+        )
+
+    parts.append(
         "=== PARSED SCAN EVIDENCE JSON ===\n"
         f"{evidence_json}\n"
     )
+
+    return "\n".join(parts)
 
 
 def build_analysis_bundle(
@@ -117,6 +131,13 @@ def build_analysis_bundle(
         include_raw_text=include_raw_text,
         include_raw_bodies=include_raw_command_bodies,
     )
+
+    # Load check catalog for primary + dependency services
+    check_ref = build_check_reference(
+        parsed_scan.primary_service,
+        dependency_services=parsed_scan.dependency_services,
+    )
+    check_reference_text = format_check_reference(check_ref)
 
     contract_files: dict[str, str] = {
         "contract": str(contract_path),
@@ -141,6 +162,7 @@ def build_analysis_bundle(
                 primary_service=parsed_scan.primary_service,
                 common_patterns_text=common_patterns_text,
                 service_skill_text=service_skill_text,
+                check_reference_text=check_reference_text,
                 parsed_scan_payload=parsed_scan_payload,
             ),
         },
