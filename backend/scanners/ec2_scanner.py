@@ -879,6 +879,7 @@ def build_scan_output(args: argparse.Namespace) -> str:
         region=args.region,
         profile=args.profile,
         timeout_seconds=args.timeout_seconds,
+        should_cancel=getattr(args, "should_cancel", None),
     )
 
     primary_results, instance_ids, subnet_ids, vpc_ids, instance_profile_names = collect_primary_ec2(

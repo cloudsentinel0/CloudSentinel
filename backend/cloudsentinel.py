@@ -24,6 +24,7 @@ from analysis_bridge import build_analysis_bundle
 from credential_utils import sanitize_error
 from llm_runner import extract_json_from_response, resolve_llm_provider, run_llm
 from scan_parser import parse_scan_text
+from scan_cancellation import ScanCancelledError
 
 
 BASE_DIR = Path(__file__).resolve().parent          # backend/
@@ -80,14 +81,25 @@ def _load_scanner(service: str) -> Callable[[Namespace], str]:
     return module.build_scan_output  # type: ignore[no-any-return]
 
 
-def _scanner_args(*, region: str, profile: str | None = None) -> Namespace:
+def _scanner_args(
+    *,
+    region: str,
+    profile: str | None = None,
+    should_cancel: Callable[[], bool] | None = None,
+) -> Namespace:
     """Build the Namespace that every scanner's build_scan_output() expects."""
     return Namespace(
         region=region,
         profile=profile,
         timeout_seconds=60,
         output_file=None,
+        should_cancel=should_cancel,
     )
+
+
+def _raise_if_cancelled(should_cancel: Callable[[], bool] | None, context: str) -> None:
+    if should_cancel and should_cancel():
+        raise ScanCancelledError(f"Scan cancelled by user during {context}.")
 
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
@@ -102,6 +114,7 @@ def run_pipeline(
     profile: str | None = None,
     llm_provider: str | None = None,
     on_progress: Callable[[str], None] | None = None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> str:
     """
     Full CloudSentinel pipeline for one service.
@@ -136,7 +149,9 @@ def run_pipeline(
             on_progress(msg)
 
     try:
+        _raise_if_cancelled(should_cancel, "scan startup")
         with _scan_lock:
+            _raise_if_cancelled(should_cancel, "scan startup")
             if use_profile:
                 # Profile mode: set AWS_PROFILE + region only.
                 prev_profile = os.environ.get("AWS_PROFILE")
@@ -150,6 +165,7 @@ def run_pipeline(
                         profile=profile,
                         progress=progress,
                         llm_provider=llm_provider,
+                        should_cancel=should_cancel,
                     )
                 finally:
                     if prev_profile is None:
@@ -174,6 +190,7 @@ def run_pipeline(
                         profile=None,
                         progress=progress,
                         llm_provider=llm_provider,
+                        should_cancel=should_cancel,
                     )
     except Exception as exc:
         # Sanitize credentials from any error that bubbles up.
@@ -190,13 +207,17 @@ def _run_scan_and_analyze(
     profile: str | None,
     progress: Callable[[str], None],
     llm_provider: str | None,
+    should_cancel: Callable[[], bool] | None,
 ) -> str:
     """Inner pipeline logic shared by key-mode and profile-mode."""
 
     # 1. Run scanner
+    _raise_if_cancelled(should_cancel, "scanner startup")
     progress(f"Scanning {service.upper()} resources in {region}...")
     scanner_fn = _load_scanner(service)
-    scan_text = scanner_fn(_scanner_args(region=region, profile=profile))
+    scan_text = scanner_fn(
+        _scanner_args(region=region, profile=profile, should_cancel=should_cancel)
+    )
 
     if not scan_text.strip():
         raise RuntimeError(
@@ -205,10 +226,12 @@ def _run_scan_and_analyze(
         )
 
     # 2. Parse
+    _raise_if_cancelled(should_cancel, "scan parsing")
     progress("Parsing scan output...")
     parsed_scan = parse_scan_text(scan_text)
 
     # 3. Build analysis prompt (service skill is auto-selected from parsed_scan.primary_service)
+    _raise_if_cancelled(should_cancel, "analysis prompt build")
     progress("Building analysis prompt...")
     bundle = build_analysis_bundle(
         parsed_scan,
@@ -227,6 +250,7 @@ def _run_scan_and_analyze(
             system_prompt = claude_md.read_text(encoding="utf-8")
 
     # 4. Send to the selected provider
+    _raise_if_cancelled(should_cancel, "AI analysis")
     progress(
         f"{resolved_provider.upper()} is analyzing findings — this may take a minute..."
     )
@@ -235,9 +259,11 @@ def _run_scan_and_analyze(
         user_prompt=user_prompt,
         provider=resolved_provider,
         cwd=PROJECT_ROOT,
+        should_cancel=should_cancel,
     ).output
 
     # 5. Clean and validate JSON
+    _raise_if_cancelled(should_cancel, "result validation")
     clean = extract_json_from_response(raw_output)
     try:
         parsed = json.loads(clean)

@@ -112,7 +112,7 @@ class ScanStore:
                 "total_findings=?, total_attack_paths=?, "
                 "severity_critical=?, severity_high=?, severity_medium=?, severity_low=?, "
                 "overall_health=? "
-                "WHERE id=?",
+                "WHERE id=? AND status='running'",
                 (
                     now,
                     analysis_json,
@@ -132,9 +132,31 @@ class ScanStore:
         now = datetime.now(timezone.utc).isoformat()
         with self._connect() as conn:
             conn.execute(
-                "UPDATE scans SET status='failed', completed_at=?, error_message=? WHERE id=?",
+                "UPDATE scans SET status='failed', completed_at=?, error_message=? "
+                "WHERE id=? AND status='running'",
                 (now, error_message, id),
             )
+
+    def cancel_scan(self, id: str, error_message: str) -> None:
+        """Mark a single running scan as cancelled."""
+        now = datetime.now(timezone.utc).isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE scans SET status='cancelled', completed_at=?, error_message=? "
+                "WHERE id=? AND status='running'",
+                (now, error_message, id),
+            )
+
+    def cancel_session(self, session_id: str, error_message: str) -> int:
+        """Mark all running scans in a session as cancelled."""
+        now = datetime.now(timezone.utc).isoformat()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "UPDATE scans SET status='cancelled', completed_at=?, error_message=? "
+                "WHERE session_id=? AND status='running'",
+                (now, error_message, session_id),
+            )
+        return cursor.rowcount
 
     def list_scans(self, limit: int = 50) -> list[dict[str, Any]]:
         """Return recent scan metadata (no ``analysis_json``) sorted newest-first."""

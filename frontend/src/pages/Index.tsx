@@ -2,12 +2,22 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Shield, RotateCcw } from 'lucide-react';
 import { LLMProvider, ServiceType, ServiceAnalysis, SSEEvent, ErrorCategory } from '@/lib/types';
-import { checkHealth, startScan, getScan } from '@/lib/api';
+import { cancelScan, checkHealth, startScan, getScan } from '@/lib/api';
 import ScanConfiguration from '@/components/ScanConfiguration';
 import ScanProgress, { ServiceStatus } from '@/components/ScanProgress';
 import ResultCard from '@/components/ResultCard';
 import ScanHistoryPanel from '@/components/ScanHistorySidebar';
 import { useScanHistory } from '@/hooks/use-scan-history';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type View = 'config' | 'scanning' | 'history-detail';
 
@@ -31,6 +41,9 @@ export default function Index() {
   const [errors, setErrors] = useState<Map<ServiceType, { message: string; category?: ErrorCategory }>>(new Map());
   const [scanDone, setScanDone] = useState(false);
   const [historyDetails, setHistoryDetails] = useState<ServiceAnalysis[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showStopConfirm, setShowStopConfirm] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const { sessions, refresh: refreshHistory, remove: removeSession } = useScanHistory();
@@ -40,6 +53,35 @@ export default function Index() {
       .then(() => setBackendOnline(true))
       .catch(() => setBackendOnline(false));
   }, []);
+
+  const resetToConfig = useCallback(() => {
+    abortRef.current = null;
+    setActiveSessionId(null);
+    setScanDone(false);
+    setShowStopConfirm(false);
+    setIsStopping(false);
+    setServiceProgress([]);
+    setResults(new Map());
+    setErrors(new Map());
+    setHistoryDetails([]);
+    setView('config');
+  }, []);
+
+  const stopActiveScan = useCallback(async () => {
+    const sessionId = activeSessionId;
+    setIsStopping(true);
+    try {
+      if (sessionId) {
+        await cancelScan(sessionId).catch((err) => {
+          console.error('Failed to request scan cancellation:', err);
+        });
+      }
+    } finally {
+      abortRef.current?.abort();
+      refreshHistory();
+      resetToConfig();
+    }
+  }, [activeSessionId, refreshHistory, resetToConfig]);
 
   const handleStartScan = useCallback((config: {
     accessKey: string;
@@ -56,11 +98,16 @@ export default function Index() {
     setResults(new Map());
     setErrors(new Map());
     setHistoryDetails([]);
+    setShowStopConfirm(false);
+    setIsStopping(false);
 
     const progress: ServiceProgress[] = config.services.map(s => ({
       service: s, status: 'pending' as ServiceStatus, message: '',
     }));
     setServiceProgress(progress);
+
+    const sessionId = crypto.randomUUID();
+    setActiveSessionId(sessionId);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -95,6 +142,16 @@ export default function Index() {
               : p
           )
         );
+      } else if (event.type === 'cancelled') {
+        setServiceProgress(prev =>
+          prev.map(p =>
+            p.service === event.service
+              ? { ...p, status: 'cancelled', message: event.message }
+              : p
+          )
+        );
+        setScanDone(true);
+        refreshHistory();
       } else if (event.type === 'done') {
         setScanDone(true);
         refreshHistory();
@@ -110,6 +167,7 @@ export default function Index() {
       region: config.region,
       llm_provider: config.llmProvider,
       profile: config.profile,
+      session_id: sessionId,
     };
 
     startScan(request, credentials, handleEvent, controller.signal).catch(err => {
@@ -120,14 +178,22 @@ export default function Index() {
     });
   }, [refreshHistory]);
 
-  const handleCancel = () => {
-    abortRef.current?.abort();
-    setView('config');
-  };
+  const handleBack = useCallback(() => {
+    if (scanDone) {
+      resetToConfig();
+      refreshHistory();
+      return;
+    }
+    void stopActiveScan();
+  }, [refreshHistory, resetToConfig, scanDone, stopActiveScan]);
+
+  const handleStopConfirm = useCallback(() => {
+    void stopActiveScan();
+  }, [stopActiveScan]);
 
   const handleReset = () => {
-    setView('config');
-    setScanDone(false);
+    resetToConfig();
+    refreshHistory();
   };
 
   const handleSelectHistorySession = useCallback(async (sessionId: string) => {
@@ -273,7 +339,37 @@ export default function Index() {
                       </div>
                     )}
 
-                  <ScanProgress rows={serviceProgress} onCancel={handleCancel} />
+                  <ScanProgress
+                    rows={serviceProgress}
+                    onBack={handleBack}
+                    onStop={() => setShowStopConfirm(true)}
+                    canStop={!scanDone}
+                    isStopping={isStopping}
+                  />
+
+                  <AlertDialog open={showStopConfirm} onOpenChange={setShowStopConfirm}>
+                    <AlertDialogContent className="border-primary/10 bg-background/95">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Stop this scan?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to stop the current scan? The in-progress scan will be cancelled and you
+                          will be returned to the home page.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isStopping}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={(event) => {
+                            event.preventDefault();
+                            handleStopConfirm();
+                          }}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {isStopping ? 'Stopping...' : 'OK'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
 
                   {/* Errors */}
                   {Array.from(errors.entries()).map(([service, err]) => (

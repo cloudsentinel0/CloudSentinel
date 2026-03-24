@@ -7,7 +7,9 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
+
+from scan_cancellation import ScanCancelledError
 
 
 @dataclass(slots=True)
@@ -44,10 +46,12 @@ class AWSCLIRunner:
         region: str,
         profile: str | None = None,
         timeout_seconds: int = 60,
+        should_cancel: Callable[[], bool] | None = None,
     ) -> None:
         self.region = region
         self.profile = profile
         self.timeout_seconds = timeout_seconds
+        self.should_cancel = should_cancel
 
     def run(
         self,
@@ -56,6 +60,9 @@ class AWSCLIRunner:
         label: str,
         include_region: bool = True,
     ) -> CommandResult:
+        if self.should_cancel and self.should_cancel():
+            raise ScanCancelledError(f"Scan cancelled by user during {label}.")
+
         command = ["aws"]
         if self.profile:
             command.extend(["--profile", self.profile])
@@ -70,22 +77,12 @@ class AWSCLIRunner:
         start = time.perf_counter()
         started_at = datetime.now(timezone.utc).isoformat()
         try:
-            completed = subprocess.run(
+            process = subprocess.Popen(
                 command,
-                capture_output=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                check=False,
-                timeout=self.timeout_seconds,
-            )
-            duration_ms = int((time.perf_counter() - start) * 1000)
-            return CommandResult(
-                label=label,
-                command=command,
-                started_at=started_at,
-                duration_ms=duration_ms,
-                exit_code=completed.returncode,
-                stdout=completed.stdout,
-                stderr=completed.stderr,
             )
         except FileNotFoundError as exc:
             duration_ms = int((time.perf_counter() - start) * 1000)
@@ -98,25 +95,45 @@ class AWSCLIRunner:
                 stdout="",
                 stderr=str(exc),
             )
-        except subprocess.TimeoutExpired as exc:
-            duration_ms = int((time.perf_counter() - start) * 1000)
-            stdout = exc.stdout or ""
-            stderr = exc.stderr or ""
-            if isinstance(stdout, bytes):
-                stdout = stdout.decode("utf-8", errors="replace")
-            if isinstance(stderr, bytes):
-                stderr = stderr.decode("utf-8", errors="replace")
-            timeout_note = f"Command exceeded timeout of {self.timeout_seconds} seconds."
-            stderr = f"{stderr}\n{timeout_note}".strip()
-            return CommandResult(
-                label=label,
-                command=command,
-                started_at=started_at,
-                duration_ms=duration_ms,
-                exit_code=124,
-                stdout=stdout,
-                stderr=stderr,
-            )
+
+        try:
+            while True:
+                try:
+                    stdout, stderr = process.communicate(timeout=0.25)
+                    duration_ms = int((time.perf_counter() - start) * 1000)
+                    return CommandResult(
+                        label=label,
+                        command=command,
+                        started_at=started_at,
+                        duration_ms=duration_ms,
+                        exit_code=process.returncode,
+                        stdout=stdout,
+                        stderr=stderr,
+                    )
+                except subprocess.TimeoutExpired:
+                    if self.should_cancel and self.should_cancel():
+                        process.kill()
+                        process.communicate()
+                        raise ScanCancelledError(f"Scan cancelled by user during {label}.")
+                    if (time.perf_counter() - start) >= self.timeout_seconds:
+                        process.kill()
+                        stdout, stderr = process.communicate()
+                        duration_ms = int((time.perf_counter() - start) * 1000)
+                        timeout_note = f"Command exceeded timeout of {self.timeout_seconds} seconds."
+                        stderr = f"{stderr}\n{timeout_note}".strip()
+                        return CommandResult(
+                            label=label,
+                            command=command,
+                            started_at=started_at,
+                            duration_ms=duration_ms,
+                            exit_code=124,
+                            stdout=stdout,
+                            stderr=stderr,
+                        )
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
 
 
 def render_command_block(result: CommandResult) -> str:

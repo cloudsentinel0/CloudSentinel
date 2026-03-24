@@ -39,6 +39,7 @@ from pydantic import BaseModel, field_validator
 from cloudsentinel import SUPPORTED_SERVICES, run_pipeline
 from credential_utils import sanitize_error, classify_aws_error
 from llm_runner import SUPPORTED_LLM_PROVIDERS, available_llm_providers, resolve_llm_provider
+from scan_cancellation import ScanCancellationRegistry, ScanCancelledError
 from scan_store import ScanStore
 
 
@@ -55,6 +56,7 @@ app.add_middleware(
 # ── Scan history store ───────────────────────────────────────────────────────
 
 store = ScanStore(Path(__file__).resolve().parent.parent / "cloudsentinel.db")
+scan_cancellations = ScanCancellationRegistry()
 
 
 # ── Startup warning ──────────────────────────────────────────────────────────
@@ -108,6 +110,7 @@ class ScanRequest(BaseModel):
     region: str
     profile: str | None = None
     llm_provider: str | None = None
+    session_id: str | None = None
 
     @field_validator("services")
     @classmethod
@@ -135,12 +138,88 @@ class ScanRequest(BaseModel):
             )
         return normalized
 
+    @field_validator("session_id")
+    @classmethod
+    def validate_session_id(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip()
+        return normalized or None
+
 
 # ── SSE helper ───────────────────────────────────────────────────────────────
 
 def _sse(payload: dict) -> str:
     """Format a dict as a single SSE data line."""
     return f"data: {json.dumps(payload)}\n\n"
+
+
+def _run_scan_job(
+    *,
+    scan_id: str,
+    session_id: str,
+    service: str,
+    pipeline_kwargs: dict,
+    redact_keys: list[str],
+) -> dict:
+    try:
+        result_json_str = run_pipeline(**pipeline_kwargs)
+        record = store.get_scan(scan_id)
+        if record and record.get("status") == "cancelled":
+            return {
+                "type": "cancelled",
+                "service": service,
+                "message": record.get("error_message") or "Scan cancelled by user.",
+                "scan_id": scan_id,
+                "session_id": session_id,
+            }
+
+        try:
+            analysis = json.loads(result_json_str)
+        except json.JSONDecodeError:
+            message = "AI analysis did not return valid JSON."
+            store.fail_scan(scan_id, message)
+            return {
+                "type": "error",
+                "service": service,
+                "message": message,
+                "category": "unknown",
+                "scan_id": scan_id,
+                "session_id": session_id,
+            }
+
+        store.complete_scan(scan_id, result_json_str)
+        return {
+            "type": "result",
+            "service": service,
+            "analysis": analysis,
+            "scan_id": scan_id,
+            "session_id": session_id,
+        }
+    except ScanCancelledError as exc:
+        message = str(exc) or "Scan cancelled by user."
+        store.cancel_scan(scan_id, message)
+        return {
+            "type": "cancelled",
+            "service": service,
+            "message": message,
+            "scan_id": scan_id,
+            "session_id": session_id,
+        }
+    except Exception as exc:
+        safe_msg = sanitize_error(str(exc), redact_keys)
+        classified = classify_aws_error(safe_msg)
+        store.fail_scan(scan_id, classified["message"])
+        return {
+            "type": "error",
+            "service": service,
+            "message": classified["message"],
+            "category": classified["category"],
+            "scan_id": scan_id,
+            "session_id": session_id,
+        }
+    finally:
+        scan_cancellations.finish_job(session_id)
 
 
 # ── Streaming scan endpoint ─────────────────────────────────────────────────
@@ -164,10 +243,11 @@ async def scan(
             detail="Provide AWS credentials via X-AWS-* headers or a 'profile' name in the body.",
         )
 
-    session_id = str(uuid.uuid4())
+    session_id = request.session_id or str(uuid.uuid4())
 
     async def generate() -> AsyncGenerator[str, None]:
         loop = asyncio.get_event_loop()
+        session_cancelled = False
 
         for service in request.services:
             scan_id = str(uuid.uuid4())
@@ -193,16 +273,29 @@ async def scan(
             )
             if request.profile:
                 pipeline_kwargs["profile"] = request.profile
+                redact_keys: list[str] = []
             else:
                 assert creds is not None
                 pipeline_kwargs["access_key"] = creds.access_key
                 pipeline_kwargs["secret_key"] = creds.secret_key
                 pipeline_kwargs["session_token"] = creds.session_token
+                redact_keys = [creds.access_key, creds.secret_key]
+                if creds.session_token:
+                    redact_keys.append(creds.session_token)
+
+            pipeline_kwargs["should_cancel"] = scan_cancellations.should_cancel(session_id)
 
             # ── Start pipeline in thread pool ─────────────────────────────
+            scan_cancellations.begin_job(session_id)
             future = loop.run_in_executor(
                 None,
-                lambda kw=pipeline_kwargs: run_pipeline(**kw),
+                lambda kw=pipeline_kwargs, sid=scan_id, sess=session_id, svc=service, rk=redact_keys: _run_scan_job(
+                    scan_id=sid,
+                    session_id=sess,
+                    service=svc,
+                    pipeline_kwargs=kw,
+                    redact_keys=rk,
+                ),
             )
 
             # ── Drain progress queue until the pipeline finishes ──────────
@@ -222,28 +315,13 @@ async def scan(
 
             # ── Emit result or error ──────────────────────────────────────
             try:
-                result_json_str = await future
-                analysis = json.loads(result_json_str)
-                store.complete_scan(scan_id, result_json_str)
-                yield _sse({
-                    "type": "result",
-                    "service": service,
-                    "analysis": analysis,
-                    "scan_id": scan_id,
-                    "session_id": session_id,
-                })
-            except Exception as exc:
-                raw_msg = str(exc)
-                # Sanitize credentials out of error messages
-                redact_keys: list[str] = []
-                if creds:
-                    redact_keys = [creds.access_key, creds.secret_key]
-                    if creds.session_token:
-                        redact_keys.append(creds.session_token)
-                safe_msg = sanitize_error(raw_msg, redact_keys)
-                classified = classify_aws_error(safe_msg)
-
-                store.fail_scan(scan_id, classified["message"])
+                payload = await future
+                yield _sse(payload)
+                if payload.get("type") == "cancelled":
+                    session_cancelled = True
+                    break
+            except Exception as exc:  # pragma: no cover - defensive
+                classified = classify_aws_error(str(exc))
                 yield _sse({
                     "type": "error",
                     "service": service,
@@ -253,7 +331,8 @@ async def scan(
                     "session_id": session_id,
                 })
 
-        yield _sse({"type": "done", "session_id": session_id})
+        if not session_cancelled:
+            yield _sse({"type": "done", "session_id": session_id})
 
     return StreamingResponse(
         generate(),
@@ -295,6 +374,22 @@ async def delete_session(session_id: str) -> dict:
     if deleted == 0:
         raise HTTPException(status_code=404, detail="Session not found.")
     return {"deleted": deleted}
+
+
+@app.post("/scans/{session_id}/cancel")
+async def cancel_session(session_id: str) -> dict:
+    """Request cancellation for a running scan session."""
+    known_session = scan_cancellations.has_session(session_id)
+    scan_cancellations.request_cancel(session_id)
+    cancelled_rows = store.cancel_session(session_id, "Scan cancelled by user.")
+    if not known_session and cancelled_rows == 0:
+        scan_cancellations.clear(session_id)
+        raise HTTPException(status_code=404, detail="No active scan session found.")
+    return {
+        "status": "cancel_requested",
+        "session_id": session_id,
+        "cancelled_rows": cancelled_rows,
+    }
 
 
 # ── Health check ─────────────────────────────────────────────────────────────

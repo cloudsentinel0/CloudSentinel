@@ -18,7 +18,7 @@ const serviceLabels: Record<ServiceType, string> = {
   rds: 'RDS', ebs: 'EBS', ami: 'AMI', elb: 'ELB',
 };
 
-export type ServiceStatus = 'pending' | 'scanning' | 'done' | 'error';
+export type ServiceStatus = 'pending' | 'scanning' | 'done' | 'error' | 'cancelled';
 
 interface ProgressRow {
   service: ServiceType;
@@ -28,7 +28,10 @@ interface ProgressRow {
 
 interface ScanProgressProps {
   rows: ProgressRow[];
-  onCancel: () => void;
+  onBack: () => void;
+  onStop: () => void;
+  canStop: boolean;
+  isStopping: boolean;
 }
 
 function ElapsedTimer({ running }: { running: boolean }) {
@@ -54,7 +57,7 @@ function ElapsedTimer({ running }: { running: boolean }) {
   );
 }
 
-export default function ScanProgress({ rows, onCancel }: ScanProgressProps) {
+export default function ScanProgress({ rows, onBack, onStop, canStop, isStopping }: ScanProgressProps) {
   return (
     <div className="glass rounded-2xl p-6">
       <h2 className="mb-4 text-sm font-bold text-foreground uppercase tracking-wider">Scan Progress</h2>
@@ -81,17 +84,29 @@ export default function ScanProgress({ rows, onCancel }: ScanProgressProps) {
               {row.status === 'scanning' && <Loader2 size={16} className="animate-spin text-primary" />}
               {row.status === 'done' && <CheckCircle2 size={16} className="text-health-secure" />}
               {row.status === 'error' && <XCircle size={16} className="text-severity-critical" />}
+              {row.status === 'cancelled' && <XCircle size={16} className="text-foreground/50" />}
               {row.status === 'pending' && <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />}
             </div>
           </div>
         ))}
       </div>
-      <button
-        onClick={onCancel}
-        className="mt-4 text-[11px] text-foreground/60 hover:text-foreground transition-colors"
-      >
-        &larr; Back
-      </button>
+      <div className="mt-4 flex items-center gap-4">
+        <button
+          onClick={onBack}
+          className="text-[11px] text-foreground/60 hover:text-foreground transition-colors"
+        >
+          &larr; Back
+        </button>
+        {canStop && (
+          <button
+            onClick={onStop}
+            disabled={isStopping}
+            className="text-[11px] text-severity-critical/80 hover:text-severity-critical disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+          >
+            Stop Scan
+          </button>
+        )}
+      </div>
     </div>
   );
 }

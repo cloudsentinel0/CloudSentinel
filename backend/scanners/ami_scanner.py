@@ -377,6 +377,7 @@ def build_scan_output(args: argparse.Namespace) -> str:
         region=args.region,
         profile=args.profile,
         timeout_seconds=args.timeout_seconds,
+        should_cancel=getattr(args, "should_cancel", None),
     )
 
     primary_results, image_ids, snapshot_ids = collect_primary_ami(runner)

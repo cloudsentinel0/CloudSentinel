@@ -62,6 +62,16 @@ export async function startScan(
   }
 }
 
+export async function cancelScan(sessionId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/scans/${encodeURIComponent(sessionId)}/cancel`, {
+    method: 'POST',
+  });
+
+  if (!res.ok && res.status !== 404) {
+    throw new Error('Failed to cancel scan');
+  }
+}
+
 // ── Scan history ────────────────────────────────────────────────────────────
 
 export async function listScans(limit = 50): Promise<ScanSummary[]> {

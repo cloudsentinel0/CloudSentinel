@@ -4,6 +4,7 @@ export type EvidenceStatus = 'CONFIRMED' | 'INFERRED';
 export type ServiceType = 'ec2' | 's3' | 'iam' | 'vpc' | 'rds' | 'ebs' | 'ami' | 'elb';
 export type LLMProvider = 'auto' | 'codex' | 'claude';
 export type ErrorCategory = 'auth' | 'timeout' | 'unknown';
+export type ScanStatus = 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface Finding {
   id: string;
@@ -97,7 +98,15 @@ export interface DoneEvent {
   session_id?: string;
 }
 
-export type SSEEvent = ProgressEvent | ResultEvent | ErrorEvent | DoneEvent;
+export interface CancelledEvent {
+  type: 'cancelled';
+  service: ServiceType;
+  message: string;
+  scan_id?: string;
+  session_id?: string;
+}
+
+export type SSEEvent = ProgressEvent | ResultEvent | ErrorEvent | DoneEvent | CancelledEvent;
 
 // ── Request types ───────────────────────────────────────────────────────────
 
@@ -112,6 +121,7 @@ export interface ScanRequest {
   region: string;
   profile?: string | null;
   llm_provider: LLMProvider;
+  session_id?: string | null;
 }
 
 export interface HealthResponse {
@@ -128,7 +138,7 @@ export interface ScanSummary {
   session_id: string;
   service: ServiceType;
   region: string;
-  status: 'running' | 'completed' | 'failed';
+  status: ScanStatus;
   started_at: string;
   completed_at: string | null;
   total_findings: number;

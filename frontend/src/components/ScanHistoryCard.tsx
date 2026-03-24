@@ -75,6 +75,7 @@ export default function ScanHistoryCard({ sessionId, scans, onSelect, onDelete }
           >
             {s.status === 'completed' && <CheckCircle2 size={9} className="text-health-secure" />}
             {s.status === 'failed' && <XCircle size={9} className="text-severity-critical" />}
+            {s.status === 'cancelled' && <XCircle size={9} className="text-foreground/50" />}
             {s.status === 'running' && <Loader2 size={9} className="animate-spin text-primary" />}
             {serviceLabels[s.service] || s.service.toUpperCase()}
           </span>
@@ -87,7 +88,9 @@ export default function ScanHistoryCard({ sessionId, scans, onSelect, onDelete }
         {totals.high > 0 && <span className="text-severity-high">{totals.high}H</span>}
         {totals.medium > 0 && <span className="text-severity-medium">{totals.medium}M</span>}
         {totals.critical === 0 && totals.high === 0 && totals.medium === 0 && (
-          <span className="text-foreground/50 font-normal">No findings</span>
+          <span className="text-foreground/50 font-normal">
+            {scans.some(s => s.status === 'cancelled') ? 'Cancelled' : 'No findings'}
+          </span>
         )}
         {worstHealth && (
           <>
